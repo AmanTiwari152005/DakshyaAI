@@ -1,0 +1,10 @@
+.page {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.anchor {
+  display: block;
+  height: 1px;
+  scroll-margin-top: 78px;
+}

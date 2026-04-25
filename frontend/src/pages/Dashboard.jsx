@@ -4,6 +4,8 @@ import BadgesPanel from "../components/dashboard/BadgesPanel";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import ProjectsList from "../components/dashboard/ProjectsList";
 import QuickActions from "../components/dashboard/QuickActions";
+import RecommendedJobs from "../components/dashboard/RecommendedJobs";
+import RecruiterFeedback from "../components/dashboard/RecruiterFeedback";
 import SkillProgress from "../components/dashboard/SkillProgress";
 import StatsCards from "../components/dashboard/StatsCards";
 import EvaChatPopup from "../components/eva/EvaChatPopup";
@@ -11,6 +13,7 @@ import EvaFloatingButton from "../components/eva/EvaFloatingButton";
 import EvaInterviewModal from "../components/eva/EvaInterviewModal";
 import {
   clearAuthToken,
+  candidateApi,
   dashboardApi,
   getApiError,
   projectsApi,
@@ -40,6 +43,9 @@ function Dashboard() {
   const [skills, setSkills] = useState([]);
   const [projects, setProjects] = useState([]);
   const [badges, setBadges] = useState([]);
+  const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [projectValidations, setProjectValidations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeForm, setActiveForm] = useState(null);
@@ -48,6 +54,7 @@ function Dashboard() {
   const [editingProject, setEditingProject] = useState(null);
   const [saving, setSaving] = useState(false);
   const [submittingId, setSubmittingId] = useState(null);
+  const [applyingId, setApplyingId] = useState(null);
   const [isEvaOpen, setIsEvaOpen] = useState(false);
   const [isInterviewOpen, setIsInterviewOpen] = useState(false);
 
@@ -56,18 +63,32 @@ function Dashboard() {
     setLoading(true);
 
     try {
-      const [summaryResponse, skillsResponse, projectsResponse, badgesResponse] =
+      const [
+        summaryResponse,
+        skillsResponse,
+        projectsResponse,
+        badgesResponse,
+        jobsResponse,
+        applicationsResponse,
+        validationsResponse,
+      ] =
         await Promise.all([
           dashboardApi.summary(),
           dashboardApi.skills(),
           dashboardApi.projects(),
           dashboardApi.badges(),
+          candidateApi.jobs(),
+          candidateApi.applications(),
+          candidateApi.projectValidations(),
         ]);
 
       setSummary(summaryResponse.data);
       setSkills(skillsResponse.data);
       setProjects(projectsResponse.data);
       setBadges(badgesResponse.data);
+      setRecommendedJobs(jobsResponse.data);
+      setApplications(applicationsResponse.data);
+      setProjectValidations(validationsResponse.data);
     } catch (err) {
       setError(getApiError(err, "Unable to load dashboard."));
     } finally {
@@ -171,6 +192,20 @@ function Dashboard() {
       setError(getApiError(err, "Unable to submit project for review."));
     } finally {
       setSubmittingId(null);
+    }
+  };
+
+  const applyToJob = async (jobId, coverNote) => {
+    setError("");
+    setApplyingId(jobId);
+
+    try {
+      await candidateApi.applyToJob(jobId, { cover_note: coverNote });
+      await loadDashboard();
+    } catch (err) {
+      setError(getApiError(err, "Unable to submit application."));
+    } finally {
+      setApplyingId(null);
     }
   };
 
@@ -354,6 +389,13 @@ function Dashboard() {
               loading={loading}
               onAddSkill={openSkillForm}
             />
+            <RecommendedJobs
+              jobs={recommendedJobs}
+              applications={applications}
+              loading={loading}
+              applyingId={applyingId}
+              onApply={applyToJob}
+            />
           </div>
 
           <div className={styles.rightColumn}>
@@ -364,6 +406,10 @@ function Dashboard() {
               onAddProject={() => openProjectForm()}
               onEditProject={openProjectForm}
               onSubmitReview={submitProjectReview}
+            />
+            <RecruiterFeedback
+              validations={projectValidations}
+              loading={loading}
             />
             <BadgesPanel badges={badges} loading={loading} />
           </div>

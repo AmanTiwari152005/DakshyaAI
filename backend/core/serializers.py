@@ -7,9 +7,13 @@ from accounts.serializers import UserProfileSerializer, get_or_create_profile
 from .models import (
     AssessmentAttempt,
     Badge,
+    JobApplication,
+    JobPost,
     PeerEndorsement,
     Project,
+    ProjectValidation,
     ProjectScreenshot,
+    RecruiterProfile,
     Skill,
     UserLink,
 )
@@ -94,6 +98,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     screenshots = serializers.SerializerMethodField()
+    upvote_count = serializers.SerializerMethodField()
+    validation_comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -108,6 +114,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             "verification_status",
             "verification_status_label",
             "screenshots",
+            "upvote_count",
+            "validation_comments",
             "created_at",
             "updated_at",
         ]
@@ -116,6 +124,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             "verification_status",
             "verification_status_label",
             "screenshots",
+            "upvote_count",
+            "validation_comments",
             "created_at",
             "updated_at",
         ]
@@ -127,6 +137,24 @@ class ProjectSerializer(serializers.ModelSerializer):
             url = screenshot.image.url
             screenshots.append(request.build_absolute_uri(url) if request else url)
         return screenshots
+
+    def get_upvote_count(self, obj):
+        return obj.recruiter_validations.filter(upvote=True).count()
+
+    def get_validation_comments(self, obj):
+        return [
+            {
+                "id": validation.id,
+                "company_name": validation.recruiter.company_name,
+                "recruiter_name": validation.recruiter.recruiter_name,
+                "comment": validation.comment,
+                "upvote": validation.upvote,
+                "created_at": validation.created_at,
+            }
+            for validation in obj.recruiter_validations.select_related("recruiter")
+            .exclude(comment="")
+            .order_by("-created_at")[:3]
+        ]
 
 
 class BadgeSerializer(serializers.ModelSerializer):
@@ -237,6 +265,205 @@ class ProjectScreenshotSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         request = self.context.get("request")
         url = obj.image.url
+        return request.build_absolute_uri(url) if request else url
+
+
+class RecruiterProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecruiterProfile
+        fields = [
+            "id",
+            "company_name",
+            "recruiter_name",
+            "designation",
+            "company_website",
+            "location",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+
+class JobPostSerializer(serializers.ModelSerializer):
+    company_name = serializers.CharField(
+        source="recruiter.company_name",
+        read_only=True,
+    )
+    recruiter_name = serializers.CharField(
+        source="recruiter.recruiter_name",
+        read_only=True,
+    )
+    applications_count = serializers.IntegerField(read_only=True)
+    has_applied = serializers.SerializerMethodField()
+
+    class Meta:
+        model = JobPost
+        fields = [
+            "id",
+            "company_name",
+            "recruiter_name",
+            "title",
+            "role",
+            "description",
+            "required_skills",
+            "experience_level",
+            "location",
+            "job_type",
+            "is_active",
+            "applications_count",
+            "has_applied",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "company_name",
+            "recruiter_name",
+            "applications_count",
+            "has_applied",
+            "created_at",
+        ]
+
+    def get_has_applied(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.applications.filter(candidate=request.user).exists()
+
+
+class ProjectValidationSerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source="project.title", read_only=True)
+    recruiter_name = serializers.CharField(
+        source="recruiter.recruiter_name",
+        read_only=True,
+    )
+    company_name = serializers.CharField(
+        source="recruiter.company_name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = ProjectValidation
+        fields = [
+            "id",
+            "recruiter",
+            "candidate",
+            "project",
+            "project_title",
+            "application",
+            "recruiter_name",
+            "company_name",
+            "upvote",
+            "comment",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "recruiter",
+            "candidate",
+            "project_title",
+            "recruiter_name",
+            "company_name",
+            "created_at",
+        ]
+
+
+class CandidateProjectSerializer(ProjectSerializer):
+    class Meta(ProjectSerializer.Meta):
+        fields = ProjectSerializer.Meta.fields
+
+
+class JobApplicationSerializer(serializers.ModelSerializer):
+    job_title = serializers.CharField(source="job.title", read_only=True)
+    company_name = serializers.CharField(
+        source="job.recruiter.company_name",
+        read_only=True,
+    )
+    role = serializers.CharField(source="job.role", read_only=True)
+    job_type = serializers.CharField(source="job.job_type", read_only=True)
+    job_location = serializers.CharField(source="job.location", read_only=True)
+    candidate_id = serializers.IntegerField(source="candidate.id", read_only=True)
+    candidate_profile = serializers.SerializerMethodField()
+    candidate_skills = serializers.SerializerMethodField()
+    candidate_projects = serializers.SerializerMethodField()
+    candidate_badges = serializers.SerializerMethodField()
+    dakshya_score = serializers.SerializerMethodField()
+    resume_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = JobApplication
+        fields = [
+            "id",
+            "job",
+            "job_title",
+            "company_name",
+            "role",
+            "job_type",
+            "job_location",
+            "candidate_id",
+            "candidate_profile",
+            "candidate_skills",
+            "candidate_projects",
+            "candidate_badges",
+            "dakshya_score",
+            "resume_url",
+            "status",
+            "cover_note",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "job_title",
+            "company_name",
+            "role",
+            "job_type",
+            "job_location",
+            "candidate_id",
+            "candidate_profile",
+            "candidate_skills",
+            "candidate_projects",
+            "candidate_badges",
+            "dakshya_score",
+            "resume_url",
+            "created_at",
+        ]
+
+    def get_candidate_profile(self, obj):
+        profile = get_or_create_profile(obj.candidate)
+        return UserProfileSerializer(
+            profile,
+            context=self.context,
+        ).data
+
+    def get_candidate_skills(self, obj):
+        return SkillSerializer(
+            obj.candidate.skills.all(),
+            many=True,
+            context=self.context,
+        ).data
+
+    def get_candidate_projects(self, obj):
+        return ProjectSerializer(
+            obj.candidate.projects.all(),
+            many=True,
+            context=self.context,
+        ).data
+
+    def get_candidate_badges(self, obj):
+        sync_default_badges(obj.candidate)
+        return BadgeSerializer(
+            obj.candidate.badges.filter(is_earned=True),
+            many=True,
+            context=self.context,
+        ).data
+
+    def get_dakshya_score(self, obj):
+        return calculate_employability_score(obj.candidate)
+
+    def get_resume_url(self, obj):
+        links = get_or_create_user_links(obj.candidate)
+        if not links.resume_file:
+            return ""
+        request = self.context.get("request")
+        url = links.resume_file.url
         return request.build_absolute_uri(url) if request else url
 
 
@@ -439,6 +666,7 @@ def get_dashboard_stats(user):
         "projects_uploaded": user.projects.count(),
         "badges_earned": user.badges.filter(is_earned=True).count(),
         "pending_verifications": skill_counts["pending"] + pending_projects,
+        "project_upvotes": user.project_validations.filter(upvote=True).count(),
     }
 
 

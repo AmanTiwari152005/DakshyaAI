@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import OTP
+from .models import OTP, UserProfile
 from .serializers import (
     ProfileSetupSerializer,
     RequestOTPSerializer,
@@ -76,6 +76,10 @@ class VerifyOTPView(APIView):
         email = serializer.validated_data["email"].lower()
         otp = serializer.validated_data["otp"]
         purpose = serializer.validated_data["purpose"]
+        account_type = serializer.validated_data.get(
+            "account_type",
+            UserProfile.ACCOUNT_CANDIDATE,
+        )
 
         otp_record = (
             OTP.objects.filter(
@@ -124,12 +128,16 @@ class VerifyOTPView(APIView):
         otp_record.save(update_fields=["is_verified"])
 
         profile = get_or_create_profile(user)
+        if purpose == OTP.PURPOSE_REGISTER:
+            profile.account_type = account_type
+            profile.save(update_fields=["account_type", "updated_at"])
         token, _ = Token.objects.get_or_create(user=user)
 
         return Response(
             {
                 "success": True,
                 "token": token.key,
+                "account_type": profile.account_type,
                 "profile_complete": profile.is_profile_complete,
                 "profile": UserProfileSerializer(profile, context={"request": request}).data,
             }

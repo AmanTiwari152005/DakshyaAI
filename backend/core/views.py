@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from django.contrib.auth.models import User
+from django.db.models import Count, Q
 from rest_framework import status
 from rest_framework.generics import (
     ListAPIView,
@@ -13,15 +15,20 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils import timezone
 
+from accounts.models import UserProfile
 from accounts.serializers import get_or_create_profile
 from .models import (
     Badge,
     Certification,
     Education,
     Experience,
+    JobApplication,
+    JobPost,
     PeerEndorsement,
     Project,
+    ProjectValidation,
     ProjectScreenshot,
+    RecruiterProfile,
     ResumeUpload,
     Skill,
     TestLock,
@@ -38,9 +45,13 @@ from .services.resume_text import extract_text_from_pdf
 from .serializers import (
     AssessmentAttemptSerializer,
     BadgeSerializer,
+    JobApplicationSerializer,
+    JobPostSerializer,
     PeerEndorsementSerializer,
     ProfileBasicInfoSerializer,
+    ProjectValidationSerializer,
     ProjectSerializer,
+    RecruiterProfileSerializer,
     SkillSerializer,
     UserLinkSerializer,
     calculate_employability_score,
@@ -113,6 +124,55 @@ def build_locked_response(test_lock):
         "warning_count": test_lock.warning_count,
         "message": ANTI_CHEAT_LOCK_MESSAGE,
     }
+
+
+def is_recruiter(user):
+    profile = get_or_create_profile(user)
+    return profile.account_type == UserProfile.ACCOUNT_RECRUITER
+
+
+def is_candidate(user):
+    profile = get_or_create_profile(user)
+    return profile.account_type == UserProfile.ACCOUNT_CANDIDATE
+
+
+def recruiter_required_response():
+    return Response(
+        {"detail": "Recruiter account required."},
+        status=status.HTTP_403_FORBIDDEN,
+    )
+
+
+def candidate_required_response():
+    return Response(
+        {"detail": "Candidate account required."},
+        status=status.HTTP_403_FORBIDDEN,
+    )
+
+
+def get_recruiter_profile(user):
+    return RecruiterProfile.objects.filter(user=user).first()
+
+
+def get_candidate_job_queryset(user):
+    profile = get_or_create_profile(user)
+    skills = list(user.skills.values_list("name", flat=True))
+    queryset = (
+        JobPost.objects.filter(is_active=True)
+        .select_related("recruiter")
+        .annotate(applications_count=Count("applications"))
+    )
+
+    filters = Q()
+    if profile.target_role:
+        filters |= Q(role__icontains=profile.target_role)
+        filters |= Q(title__icontains=profile.target_role)
+    for skill_name in skills:
+        filters |= Q(required_skills__icontains=skill_name)
+
+    if filters:
+        return queryset.filter(filters).distinct()
+    return queryset
 
 
 class DashboardSummaryView(APIView):
@@ -220,6 +280,382 @@ class ProjectSubmitReviewView(APIView):
                 "project": ProjectSerializer(project, context={"request": request}).data,
             }
         )
+
+
+class RecruiterProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+
+        recruiter = get_recruiter_profile(request.user)
+        if not recruiter:
+            return Response(
+                {"detail": "Recruiter profile not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            {
+                "profile": RecruiterProfileSerializer(
+                    recruiter,
+                    context={"request": request},
+                ).data
+            }
+        )
+
+    def post(self, request):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+
+        recruiter = get_recruiter_profile(request.user)
+        serializer = RecruiterProfileSerializer(
+            recruiter,
+            data=request.data,
+            partial=bool(recruiter),
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+
+        return Response(
+            {
+                "success": True,
+                "profile": serializer.data,
+            },
+            status=status.HTTP_200_OK if recruiter else status.HTTP_201_CREATED,
+        )
+
+
+class RecruiterJobListCreateView(ListCreateAPIView):
+    serializer_class = JobPostSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        recruiter = get_recruiter_profile(self.request.user)
+        if not recruiter:
+            return JobPost.objects.none()
+        return (
+            JobPost.objects.filter(recruiter=recruiter)
+            .select_related("recruiter")
+            .annotate(applications_count=Count("applications"))
+        )
+
+    def list(self, request, *args, **kwargs):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+        if not get_recruiter_profile(request.user):
+            return Response(
+                {"detail": "Complete recruiter profile before posting jobs."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(recruiter=get_recruiter_profile(self.request.user))
+
+
+class RecruiterJobDetailView(RetrieveUpdateDestroyAPIView):
+    serializer_class = JobPostSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["patch", "delete", "options"]
+
+    def get_queryset(self):
+        recruiter = get_recruiter_profile(self.request.user)
+        if not recruiter:
+            return JobPost.objects.none()
+        return (
+            JobPost.objects.filter(recruiter=recruiter)
+            .select_related("recruiter")
+            .annotate(applications_count=Count("applications"))
+        )
+
+    def patch(self, request, *args, **kwargs):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+        return super().patch(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+        return super().delete(request, *args, **kwargs)
+
+
+class RecruiterApplicationsView(ListAPIView):
+    serializer_class = JobApplicationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        recruiter = get_recruiter_profile(self.request.user)
+        if not recruiter:
+            return JobApplication.objects.none()
+        return (
+            JobApplication.objects.filter(job__recruiter=recruiter)
+            .select_related("job", "job__recruiter", "candidate")
+            .prefetch_related("candidate__skills", "candidate__projects")
+        )
+
+    def list(self, request, *args, **kwargs):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+        return super().list(request, *args, **kwargs)
+
+
+class RecruiterApplicationDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+
+        recruiter = get_recruiter_profile(request.user)
+        application = (
+            JobApplication.objects.filter(pk=pk, job__recruiter=recruiter)
+            .select_related("job", "job__recruiter", "candidate")
+            .prefetch_related("candidate__skills", "candidate__projects", "candidate__badges")
+            .first()
+        )
+        if not application:
+            return Response(
+                {"detail": "Application not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            JobApplicationSerializer(application, context={"request": request}).data
+        )
+
+
+def sync_recruiter_validation_effects(validation):
+    candidate = validation.candidate
+    if validation.upvote:
+        project = validation.project
+        if project.verification_status != Project.STATUS_VERIFIED:
+            project.verification_status = Project.STATUS_VERIFIED
+            project.save(update_fields=["verification_status", "updated_at"])
+
+        badge, _ = Badge.objects.get_or_create(
+            user=candidate,
+            badge_type="peer_validation",
+            defaults={
+                "title": "Recruiter Validated Project",
+                "icon_name": "medal",
+                "is_earned": True,
+                "requirement_text": "Receive a recruiter upvote or validation comment on a project.",
+                "earned_at": timezone.now(),
+            },
+        )
+        if not badge.is_earned:
+            badge.title = "Recruiter Validated Project"
+            badge.icon_name = "medal"
+            badge.is_earned = True
+            badge.requirement_text = (
+                "Receive a recruiter upvote or validation comment on a project."
+            )
+            badge.earned_at = timezone.now()
+            badge.save(
+                update_fields=[
+                    "title",
+                    "icon_name",
+                    "is_earned",
+                    "requirement_text",
+                    "earned_at",
+                ]
+            )
+
+    if validation.comment:
+        endorsement, created = PeerEndorsement.objects.get_or_create(
+            user=candidate,
+            project=validation.project,
+            reviewer_name=validation.recruiter.recruiter_name,
+            relationship="Recruiter validation",
+            defaults={
+                "reviewer_role": validation.recruiter.designation,
+                "rating": 5 if validation.upvote else 4,
+                "comment": validation.comment,
+                "is_approved": True,
+            },
+        )
+        if not created:
+            endorsement.reviewer_role = validation.recruiter.designation
+            endorsement.rating = 5 if validation.upvote else 4
+            endorsement.comment = validation.comment
+            endorsement.is_approved = True
+            endorsement.save(
+                update_fields=[
+                    "reviewer_role",
+                    "rating",
+                    "comment",
+                    "is_approved",
+                ]
+            )
+
+    sync_default_badges(candidate)
+
+
+class RecruiterProjectValidationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not is_recruiter(request.user):
+            return recruiter_required_response()
+
+        recruiter = get_recruiter_profile(request.user)
+        if not recruiter:
+            return Response(
+                {"detail": "Complete recruiter profile before validating projects."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        candidate_id = request.data.get("candidate_id")
+        project_id = request.data.get("project_id")
+        application_id = request.data.get("application_id")
+        comment = str(request.data.get("comment", "")).strip()
+        upvote = bool(request.data.get("upvote", False))
+
+        candidate = User.objects.filter(id=candidate_id).first()
+        if not candidate:
+            return Response(
+                {"detail": "Candidate not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        project = Project.objects.filter(id=project_id, user=candidate).first()
+        if not project:
+            return Response(
+                {"detail": "Project not found for this candidate."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        application = None
+        if application_id:
+            application = JobApplication.objects.filter(
+                id=application_id,
+                candidate=candidate,
+                job__recruiter=recruiter,
+            ).first()
+            if not application:
+                return Response(
+                    {"detail": "Application not found for this recruiter."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        validation, created = ProjectValidation.objects.get_or_create(
+            recruiter=recruiter,
+            candidate=candidate,
+            project=project,
+            application=application,
+            defaults={"upvote": upvote, "comment": comment},
+        )
+
+        if not created:
+            validation.upvote = upvote
+            validation.comment = comment
+            validation.save(update_fields=["upvote", "comment"])
+
+        sync_recruiter_validation_effects(validation)
+
+        return Response(
+            {
+                "success": True,
+                "validation": ProjectValidationSerializer(
+                    validation,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class CandidateJobsView(ListAPIView):
+    serializer_class = JobPostSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if not is_candidate(self.request.user):
+            return JobPost.objects.none()
+        return get_candidate_job_queryset(self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        if not is_candidate(request.user):
+            return candidate_required_response()
+        return super().list(request, *args, **kwargs)
+
+
+class CandidateJobApplyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        if not is_candidate(request.user):
+            return candidate_required_response()
+
+        job = JobPost.objects.filter(pk=pk, is_active=True).first()
+        if not job:
+            return Response(
+                {"detail": "Active job not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        application, created = JobApplication.objects.get_or_create(
+            job=job,
+            candidate=request.user,
+            defaults={"cover_note": str(request.data.get("cover_note", "")).strip()},
+        )
+
+        if not created and request.data.get("cover_note") is not None:
+            application.cover_note = str(request.data.get("cover_note", "")).strip()
+            application.save(update_fields=["cover_note"])
+
+        return Response(
+            {
+                "success": True,
+                "application": JobApplicationSerializer(
+                    application,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class CandidateApplicationsView(ListAPIView):
+    serializer_class = JobApplicationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return JobApplication.objects.filter(candidate=self.request.user).select_related(
+            "job",
+            "job__recruiter",
+            "candidate",
+        )
+
+    def list(self, request, *args, **kwargs):
+        if not is_candidate(request.user):
+            return candidate_required_response()
+        return super().list(request, *args, **kwargs)
+
+
+class CandidateProjectValidationsView(ListAPIView):
+    serializer_class = ProjectValidationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return (
+            ProjectValidation.objects.filter(candidate=self.request.user)
+            .select_related("recruiter", "project", "application")
+            .all()
+        )
+
+    def list(self, request, *args, **kwargs):
+        if not is_candidate(request.user):
+            return candidate_required_response()
+        return super().list(request, *args, **kwargs)
 
 
 def attach_project_screenshots(project, request):

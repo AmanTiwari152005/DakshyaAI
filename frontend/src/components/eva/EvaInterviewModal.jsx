@@ -24,10 +24,6 @@ function stopStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
-function getVideoOnlyStream(stream) {
-  return new MediaStream(stream.getVideoTracks());
-}
-
 function EvaInterviewModal({ isOpen, onClose }) {
   const [cameraStream, setCameraStream] = useState(null);
   const [sessionId, setSessionId] = useState("");
@@ -75,11 +71,14 @@ function EvaInterviewModal({ isOpen, onClose }) {
 
     try {
       openedStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: "user",
+        },
         audio: true,
       });
-      openedStream.getAudioTracks().forEach((track) => track.stop());
-      setCameraStream(getVideoOnlyStream(openedStream));
+      setCameraStream(openedStream);
       const response = await startEvaInterview("voice");
       setSessionId(response.data.interview_session_id);
       setQuestion(response.data.question);
@@ -200,7 +199,7 @@ function EvaInterviewModal({ isOpen, onClose }) {
 
         {phase === "interview" && (
           <div className={styles.interviewGrid}>
-            <CameraPreview stream={cameraStream} />
+              <CameraPreview stream={cameraStream} />
 
             <section className={styles.interviewPanel}>
               <div className={styles.questionCard}>
@@ -218,7 +217,12 @@ function EvaInterviewModal({ isOpen, onClose }) {
                 </div>
               )}
 
-              <VoiceRecorder value={answer} onChange={setAnswer} disabled={loading} />
+              <VoiceRecorder
+                value={answer}
+                onChange={setAnswer}
+                disabled={loading}
+                mediaStream={cameraStream}
+              />
 
               <div className={styles.interviewActions}>
                 <button type="button" onClick={submitAnswer} disabled={loading || !answer.trim()}>

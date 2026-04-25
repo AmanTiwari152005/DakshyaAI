@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { authApi, getApiError, setAuthToken } from "../services/api";
+import {
+  authApi,
+  getApiError,
+  setAccountType,
+  setAuthToken,
+} from "../services/api";
 import styles from "./Auth.module.css";
 
 function Login() {
@@ -43,6 +48,12 @@ function Login() {
         purpose: "login",
       });
       setAuthToken(response.data.token);
+      const accountType = response.data.account_type || "candidate";
+      setAccountType(accountType);
+      if (accountType === "recruiter") {
+        navigate("/recruiter-dashboard", { replace: true });
+        return;
+      }
       navigate(response.data.profile_complete ? "/dashboard" : "/profile-setup", {
         replace: true,
       });

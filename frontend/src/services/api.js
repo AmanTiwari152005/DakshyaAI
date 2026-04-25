@@ -4,6 +4,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
 export const AUTH_TOKEN_KEY = "dakshyaai_auth_token";
+export const ACCOUNT_TYPE_KEY = "dakshyaai_account_type";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -35,8 +36,19 @@ export function setAuthToken(token) {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
+export function setAccountType(accountType) {
+  if (accountType) {
+    localStorage.setItem(ACCOUNT_TYPE_KEY, accountType);
+  }
+}
+
+export function getAccountType() {
+  return localStorage.getItem(ACCOUNT_TYPE_KEY) || "candidate";
+}
+
 export function clearAuthToken() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(ACCOUNT_TYPE_KEY);
 }
 
 export function isAuthenticated() {
@@ -71,10 +83,19 @@ export function getApiError(error, fallback = "Something went wrong.") {
 }
 
 export const authApi = {
-  requestOtp: ({ email, purpose }) =>
-    api.post("/auth/request-otp/", { email, purpose }),
-  verifyOtp: ({ email, otp, purpose }) =>
-    api.post("/auth/verify-otp/", { email, otp, purpose }),
+  requestOtp: ({ email, purpose, accountType }) =>
+    api.post("/auth/request-otp/", {
+      email,
+      purpose,
+      account_type: accountType,
+    }),
+  verifyOtp: ({ email, otp, purpose, accountType }) =>
+    api.post("/auth/verify-otp/", {
+      email,
+      otp,
+      purpose,
+      account_type: accountType,
+    }),
 };
 
 export const profileApi = {
@@ -87,6 +108,25 @@ export const dashboardApi = {
   skills: () => api.get("/dashboard/skills/"),
   projects: () => api.get("/dashboard/projects/"),
   badges: () => api.get("/dashboard/badges/"),
+};
+
+export const candidateApi = {
+  jobs: () => api.get("/candidate/jobs/"),
+  applyToJob: (id, payload) => api.post(`/candidate/jobs/${id}/apply/`, payload),
+  applications: () => api.get("/candidate/applications/"),
+  projectValidations: () => api.get("/candidate/project-validations/"),
+};
+
+export const recruiterApi = {
+  getProfile: () => api.get("/recruiter/profile/"),
+  saveProfile: (payload) => api.post("/recruiter/profile/", payload),
+  jobs: () => api.get("/recruiter/jobs/"),
+  createJob: (payload) => api.post("/recruiter/jobs/", payload),
+  updateJob: (id, payload) => api.patch(`/recruiter/jobs/${id}/`, payload),
+  deleteJob: (id) => api.delete(`/recruiter/jobs/${id}/`),
+  applications: () => api.get("/recruiter/applications/"),
+  applicationDetail: (id) => api.get(`/recruiter/applications/${id}/`),
+  validateProject: (payload) => api.post("/recruiter/project-validation/", payload),
 };
 
 export const skillsApi = {

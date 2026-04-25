@@ -6,6 +6,7 @@ const statItems = [
   { key: "projects_uploaded", label: "Projects Uploaded" },
   { key: "badges_earned", label: "Badges Earned" },
   { key: "pending_verifications", label: "Pending Verifications" },
+  { key: "project_upvotes", label: "Project Upvotes" },
 ];
 
 function StatsCards({ stats, loading }) {

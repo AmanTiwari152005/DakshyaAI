@@ -13,9 +13,16 @@ function stopStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
-function VoiceRecorder({ value, onChange, disabled }) {
+function hasLiveAudioTrack(stream) {
+  return Boolean(
+    stream?.getAudioTracks?.().some((track) => track.readyState === "live")
+  );
+}
+
+function VoiceRecorder({ value, onChange, disabled, mediaStream }) {
   const recognitionRef = useRef(null);
   const micStreamRef = useRef(null);
+  const ownsMicStreamRef = useRef(false);
   const isRecordingRef = useRef(false);
   const disabledRef = useRef(disabled);
   const committedTranscriptRef = useRef("");
@@ -32,9 +39,18 @@ function VoiceRecorder({ value, onChange, disabled }) {
   const isSupported = Boolean(SpeechRecognition);
 
   const stopMicrophone = () => {
-    stopStream(micStreamRef.current);
-    micStreamRef.current = null;
-    setMicReady(false);
+    if (ownsMicStreamRef.current) {
+      stopStream(micStreamRef.current);
+      micStreamRef.current = null;
+      ownsMicStreamRef.current = false;
+      setMicReady(false);
+      return;
+    }
+
+    if (!hasLiveAudioTrack(micStreamRef.current)) {
+      micStreamRef.current = null;
+      setMicReady(false);
+    }
   };
 
   const stopRecording = () => {
@@ -51,6 +67,14 @@ function VoiceRecorder({ value, onChange, disabled }) {
       stopRecording();
     }
   }, [disabled]);
+
+  useEffect(() => {
+    if (hasLiveAudioTrack(mediaStream)) {
+      micStreamRef.current = mediaStream;
+      ownsMicStreamRef.current = false;
+      setMicReady(true);
+    }
+  }, [mediaStream]);
 
   useEffect(() => {
     if (!isRecordingRef.current || !value) {
@@ -72,12 +96,20 @@ function VoiceRecorder({ value, onChange, disabled }) {
       throw new Error("Microphone permission is not available in this browser.");
     }
 
-    if (micStreamRef.current?.getAudioTracks().some((track) => track.readyState === "live")) {
+    if (hasLiveAudioTrack(mediaStream)) {
+      micStreamRef.current = mediaStream;
+      ownsMicStreamRef.current = false;
+      setMicReady(true);
+      return mediaStream;
+    }
+
+    if (hasLiveAudioTrack(micStreamRef.current)) {
       return micStreamRef.current;
     }
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     micStreamRef.current = stream;
+    ownsMicStreamRef.current = true;
     setMicReady(true);
     return stream;
   };

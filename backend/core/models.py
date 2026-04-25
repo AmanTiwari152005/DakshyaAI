@@ -316,3 +316,136 @@ class Experience(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class RecruiterProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recruiter_profile",
+    )
+    company_name = models.CharField(max_length=180)
+    recruiter_name = models.CharField(max_length=150)
+    designation = models.CharField(max_length=140, blank=True)
+    company_website = models.URLField(blank=True)
+    location = models.CharField(max_length=140, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["company_name"]
+
+    def __str__(self):
+        return f"{self.recruiter_name} at {self.company_name}"
+
+
+class JobPost(models.Model):
+    TYPE_INTERNSHIP = "internship"
+    TYPE_FULL_TIME = "full-time"
+    TYPE_PART_TIME = "part-time"
+    TYPE_CONTRACT = "contract"
+
+    JOB_TYPE_CHOICES = [
+        (TYPE_INTERNSHIP, "Internship"),
+        (TYPE_FULL_TIME, "Full-time"),
+        (TYPE_PART_TIME, "Part-time"),
+        (TYPE_CONTRACT, "Contract"),
+    ]
+
+    recruiter = models.ForeignKey(
+        RecruiterProfile,
+        on_delete=models.CASCADE,
+        related_name="jobs",
+    )
+    title = models.CharField(max_length=180)
+    role = models.CharField(max_length=140)
+    description = models.TextField()
+    required_skills = models.CharField(max_length=320)
+    experience_level = models.CharField(max_length=100, blank=True)
+    location = models.CharField(max_length=140, blank=True)
+    job_type = models.CharField(
+        max_length=20,
+        choices=JOB_TYPE_CHOICES,
+        default=TYPE_FULL_TIME,
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} - {self.recruiter.company_name}"
+
+
+class JobApplication(models.Model):
+    STATUS_APPLIED = "applied"
+    STATUS_REVIEWED = "reviewed"
+    STATUS_SHORTLISTED = "shortlisted"
+    STATUS_REJECTED = "rejected"
+
+    STATUS_CHOICES = [
+        (STATUS_APPLIED, "Applied"),
+        (STATUS_REVIEWED, "Reviewed"),
+        (STATUS_SHORTLISTED, "Shortlisted"),
+        (STATUS_REJECTED, "Rejected"),
+    ]
+
+    job = models.ForeignKey(
+        JobPost,
+        on_delete=models.CASCADE,
+        related_name="applications",
+    )
+    candidate = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="job_applications",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_APPLIED,
+    )
+    cover_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("job", "candidate")
+
+    def __str__(self):
+        return f"{self.candidate} -> {self.job}"
+
+
+class ProjectValidation(models.Model):
+    recruiter = models.ForeignKey(
+        RecruiterProfile,
+        on_delete=models.CASCADE,
+        related_name="project_validations",
+    )
+    candidate = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="project_validations",
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="recruiter_validations",
+    )
+    application = models.ForeignKey(
+        JobApplication,
+        on_delete=models.SET_NULL,
+        related_name="project_validations",
+        blank=True,
+        null=True,
+    )
+    upvote = models.BooleanField(default=False)
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("recruiter", "candidate", "project", "application")
+
+    def __str__(self):
+        return f"{self.recruiter} validated {self.project}"

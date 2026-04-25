@@ -61,7 +61,8 @@
   font-weight: 800;
 }
 
-.form input {
+.form input,
+.form select {
   width: 100%;
   min-height: 50px;
   padding: 0 14px;
@@ -73,12 +74,14 @@
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.form input:focus {
+.form input:focus,
+.form select:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
-.form input:disabled {
+.form input:disabled,
+.form select:disabled {
   background: #f3f4f6;
   color: #6b7280;
 }

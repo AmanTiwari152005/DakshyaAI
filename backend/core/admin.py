@@ -6,9 +6,13 @@ from .models import (
     Certification,
     Education,
     Experience,
+    JobApplication,
+    JobPost,
     PeerEndorsement,
     Project,
+    ProjectValidation,
     ProjectScreenshot,
+    RecruiterProfile,
     ResumeUpload,
     Skill,
     UserLink,
@@ -83,3 +87,30 @@ class EducationAdmin(admin.ModelAdmin):
 class ExperienceAdmin(admin.ModelAdmin):
     list_display = ("title", "user", "company", "created_at")
     search_fields = ("title", "company", "description", "user__email")
+
+
+@admin.register(RecruiterProfile)
+class RecruiterProfileAdmin(admin.ModelAdmin):
+    list_display = ("company_name", "recruiter_name", "designation", "location")
+    search_fields = ("company_name", "recruiter_name", "user__email")
+
+
+@admin.register(JobPost)
+class JobPostAdmin(admin.ModelAdmin):
+    list_display = ("title", "recruiter", "role", "job_type", "is_active", "created_at")
+    list_filter = ("job_type", "is_active")
+    search_fields = ("title", "role", "required_skills", "recruiter__company_name")
+
+
+@admin.register(JobApplication)
+class JobApplicationAdmin(admin.ModelAdmin):
+    list_display = ("job", "candidate", "status", "created_at")
+    list_filter = ("status",)
+    search_fields = ("job__title", "candidate__email", "cover_note")
+
+
+@admin.register(ProjectValidation)
+class ProjectValidationAdmin(admin.ModelAdmin):
+    list_display = ("project", "candidate", "recruiter", "upvote", "created_at")
+    list_filter = ("upvote",)
+    search_fields = ("project__title", "candidate__email", "recruiter__company_name")

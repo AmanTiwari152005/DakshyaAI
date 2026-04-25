@@ -213,7 +213,7 @@
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
   margin-top: 18px;
 }
@@ -455,6 +455,123 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.projectBadgeStack {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.projectFeedbackPreview,
+.feedbackList,
+.jobList {
+  display: grid;
+  gap: 12px;
+}
+
+.projectFeedbackPreview {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.projectFeedbackPreview p,
+.jobCard p,
+.feedbackItem p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.55;
+}
+
+.jobCard,
+.feedbackItem {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.jobCard button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: #7c3aed;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.jobCard button:disabled {
+  cursor: not-allowed;
+  background: #d1d5db;
+  color: #4b5563;
+}
+
+.jobMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jobMeta span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.feedbackItem {
+  border-left: 4px solid #7c3aed;
+}
+
+.feedbackItem strong {
+  color: #111827;
+}
+
+.feedbackItem small {
+  color: #6b7280;
+  font-weight: 800;
+}
+
+.inlineModal {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(17, 24, 39, 0.45);
+}
+
+.inlineModalCard {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 28px 72px rgba(17, 24, 39, 0.28);
+}
+
+.inlineModalCard label {
+  display: grid;
+  gap: 8px;
+  color: #111827;
+  font-weight: 850;
+}
+
+.inlineModalCard textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font: inherit;
+  resize: vertical;
 }
 
 .projectActions button:disabled {

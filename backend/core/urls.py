@@ -1,6 +1,10 @@
 from django.urls import path
 
 from .views import (
+    CandidateApplicationsView,
+    CandidateJobApplyView,
+    CandidateJobsView,
+    CandidateProjectValidationsView,
     DashboardBadgesView,
     DashboardProjectsView,
     DashboardSkillsView,
@@ -26,6 +30,12 @@ from .views import (
     QuizGenerateView,
     QuizResetWarningsView,
     QuizSubmitView,
+    RecruiterApplicationDetailView,
+    RecruiterApplicationsView,
+    RecruiterJobDetailView,
+    RecruiterJobListCreateView,
+    RecruiterProfileView,
+    RecruiterProjectValidationView,
     SkillDetailView,
     SkillListCreateView,
 )
@@ -35,6 +45,44 @@ urlpatterns = [
     path("dashboard/skills/", DashboardSkillsView.as_view(), name="dashboard-skills"),
     path("dashboard/projects/", DashboardProjectsView.as_view(), name="dashboard-projects"),
     path("dashboard/badges/", DashboardBadgesView.as_view(), name="dashboard-badges"),
+    path("recruiter/profile/", RecruiterProfileView.as_view(), name="recruiter-profile"),
+    path("recruiter/jobs/", RecruiterJobListCreateView.as_view(), name="recruiter-jobs"),
+    path(
+        "recruiter/jobs/<int:pk>/",
+        RecruiterJobDetailView.as_view(),
+        name="recruiter-job-detail",
+    ),
+    path(
+        "recruiter/applications/",
+        RecruiterApplicationsView.as_view(),
+        name="recruiter-applications",
+    ),
+    path(
+        "recruiter/applications/<int:pk>/",
+        RecruiterApplicationDetailView.as_view(),
+        name="recruiter-application-detail",
+    ),
+    path(
+        "recruiter/project-validation/",
+        RecruiterProjectValidationView.as_view(),
+        name="recruiter-project-validation",
+    ),
+    path("candidate/jobs/", CandidateJobsView.as_view(), name="candidate-jobs"),
+    path(
+        "candidate/jobs/<int:pk>/apply/",
+        CandidateJobApplyView.as_view(),
+        name="candidate-job-apply",
+    ),
+    path(
+        "candidate/applications/",
+        CandidateApplicationsView.as_view(),
+        name="candidate-applications",
+    ),
+    path(
+        "candidate/project-validations/",
+        CandidateProjectValidationsView.as_view(),
+        name="candidate-project-validations",
+    ),
     path("skills/", SkillListCreateView.as_view(), name="skills"),
     path("skills/<int:pk>/", SkillDetailView.as_view(), name="skill-detail"),
     path("projects/", ProjectListCreateView.as_view(), name="projects"),

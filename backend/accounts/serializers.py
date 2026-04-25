@@ -7,12 +7,20 @@ from .models import OTP, UserProfile
 class RequestOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
     purpose = serializers.ChoiceField(choices=OTP.PURPOSE_CHOICES)
+    account_type = serializers.ChoiceField(
+        choices=UserProfile.ACCOUNT_TYPE_CHOICES,
+        required=False,
+    )
 
 
 class VerifyOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(min_length=4, max_length=6)
     purpose = serializers.ChoiceField(choices=OTP.PURPOSE_CHOICES)
+    account_type = serializers.ChoiceField(
+        choices=UserProfile.ACCOUNT_TYPE_CHOICES,
+        required=False,
+    )
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -22,6 +30,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "id",
             "full_name",
             "email",
+            "account_type",
             "target_role",
             "experience_level",
             "education",
@@ -34,7 +43,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "email", "is_profile_complete", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "email",
+            "account_type",
+            "is_profile_complete",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class ProfileSetupSerializer(serializers.ModelSerializer):

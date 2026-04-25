@@ -6,6 +6,10 @@ import Login from "./pages/Login";
 import ProfileDashboard from "./pages/ProfileDashboard";
 import ProfileSetup from "./pages/ProfileSetup";
 import Register from "./pages/Register";
+import RecruiterApplicationDetail from "./pages/RecruiterApplicationDetail";
+import RecruiterApplications from "./pages/RecruiterApplications";
+import RecruiterDashboard from "./pages/RecruiterDashboard";
+import RecruiterJobs from "./pages/RecruiterJobs";
 import SkillTest from "./pages/SkillTest";
 
 function App() {
@@ -21,6 +25,13 @@ function App() {
         <Route path="/profile-dashboard" element={<ProfileDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/skill-test/:skillName" element={<SkillTest />} />
+        <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
+        <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
+        <Route path="/recruiter/applications" element={<RecruiterApplications />} />
+        <Route
+          path="/recruiter/applications/:id"
+          element={<RecruiterApplicationDetail />}
+        />
       </Route>
     </Routes>
   );

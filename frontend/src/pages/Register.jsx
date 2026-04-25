@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { authApi, getApiError, setAuthToken } from "../services/api";
+import {
+  authApi,
+  getApiError,
+  setAccountType,
+  setAuthToken,
+} from "../services/api";
 import styles from "./Auth.module.css";
 
 function Register() {
   const navigate = useNavigate();
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
+  const [accountType, setAccountTypeValue] = useState("candidate");
   const [otp, setOtp] = useState("");
   const [devOtp, setDevOtp] = useState("");
   const [error, setError] = useState("");
@@ -21,6 +27,7 @@ function Register() {
       const response = await authApi.requestOtp({
         email,
         purpose: "register",
+        accountType,
       });
       setDevOtp(response.data.otp);
       setStep("otp");
@@ -41,8 +48,15 @@ function Register() {
         email,
         otp,
         purpose: "register",
+        accountType,
       });
       setAuthToken(response.data.token);
+      const verifiedAccountType = response.data.account_type || accountType;
+      setAccountType(verifiedAccountType);
+      if (verifiedAccountType === "recruiter") {
+        navigate("/recruiter-dashboard", { replace: true });
+        return;
+      }
       navigate(response.data.profile_complete ? "/dashboard" : "/profile-setup", {
         replace: true,
       });
@@ -80,6 +94,21 @@ function Register() {
               required
             />
           </label>
+
+          {step === "email" && (
+            <label>
+              Account type
+              <select
+                value={accountType}
+                onChange={(event) => setAccountTypeValue(event.target.value)}
+                disabled={loading}
+                required
+              >
+                <option value="candidate">Candidate</option>
+                <option value="recruiter">Recruiter</option>
+              </select>
+            </label>
+          )}
 
           {step === "otp" && (
             <label>

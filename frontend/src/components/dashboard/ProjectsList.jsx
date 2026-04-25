@@ -55,16 +55,31 @@ function ProjectsList({
                   <h3>{project.title}</h3>
                   <p>{project.description || "No description added yet."}</p>
                 </div>
-                <span
-                  className={`${styles.statusTag} ${
-                    statusClassMap[project.verification_status] || styles.statusMuted
-                  }`}
-                >
-                  {project.verification_status_label}
-                </span>
+                <div className={styles.projectBadgeStack}>
+                  <span
+                    className={`${styles.statusTag} ${
+                      statusClassMap[project.verification_status] || styles.statusMuted
+                    }`}
+                  >
+                    {project.verification_status_label}
+                  </span>
+                  <span className={`${styles.statusTag} ${styles.statusVerified}`}>
+                    {project.upvote_count || 0} upvotes
+                  </span>
+                </div>
               </div>
 
               <p className={styles.techStack}>{project.tech_stack}</p>
+
+              {project.validation_comments?.length > 0 && (
+                <div className={styles.projectFeedbackPreview}>
+                  {project.validation_comments.map((item) => (
+                    <p key={item.id}>
+                      <strong>{item.company_name}:</strong> {item.comment}
+                    </p>
+                  ))}
+                </div>
+              )}
 
               <div className={styles.projectActions}>
                 <button

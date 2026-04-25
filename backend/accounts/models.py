@@ -6,6 +6,14 @@ from django.utils import timezone
 
 
 class UserProfile(models.Model):
+    ACCOUNT_CANDIDATE = "candidate"
+    ACCOUNT_RECRUITER = "recruiter"
+
+    ACCOUNT_TYPE_CHOICES = [
+        (ACCOUNT_CANDIDATE, "Candidate"),
+        (ACCOUNT_RECRUITER, "Recruiter"),
+    ]
+
     STATUS_STUDENT = "Student"
     STATUS_DEVELOPER = "Developer"
     STATUS_JOB_SEEKER = "Job Seeker"
@@ -25,6 +33,11 @@ class UserProfile(models.Model):
     )
     full_name = models.CharField(max_length=150, blank=True)
     email = models.EmailField(unique=True)
+    account_type = models.CharField(
+        max_length=20,
+        choices=ACCOUNT_TYPE_CHOICES,
+        default=ACCOUNT_CANDIDATE,
+    )
     target_role = models.CharField(max_length=120, blank=True)
     experience_level = models.CharField(max_length=80, blank=True)
     education = models.CharField(max_length=160, blank=True)

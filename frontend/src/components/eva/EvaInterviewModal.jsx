@@ -24,6 +24,10 @@ function stopStream(stream) {
   stream?.getTracks?.().forEach((track) => track.stop());
 }
 
+function getVideoOnlyStream(stream) {
+  return new MediaStream(stream.getVideoTracks());
+}
+
 function EvaInterviewModal({ isOpen, onClose }) {
   const [cameraStream, setCameraStream] = useState(null);
   const [sessionId, setSessionId] = useState("");
@@ -72,9 +76,10 @@ function EvaInterviewModal({ isOpen, onClose }) {
     try {
       openedStream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false,
+        audio: true,
       });
-      setCameraStream(openedStream);
+      openedStream.getAudioTracks().forEach((track) => track.stop());
+      setCameraStream(getVideoOnlyStream(openedStream));
       const response = await startEvaInterview("voice");
       setSessionId(response.data.interview_session_id);
       setQuestion(response.data.question);
@@ -82,7 +87,12 @@ function EvaInterviewModal({ isOpen, onClose }) {
       setPhase("interview");
       speak(response.data.question);
     } catch (err) {
-      setError(getApiError(err, "Camera permission is required to start the interview."));
+      setError(
+        getApiError(
+          err,
+          "Camera and microphone permission are required to start the interview."
+        )
+      );
       stopStream(openedStream || cameraStream);
     } finally {
       setLoading(false);
@@ -174,11 +184,16 @@ function EvaInterviewModal({ isOpen, onClose }) {
               Eva will ask interview questions based on your resume and profile.
             </p>
             <p className={styles.evaNotice}>
-              Camera preview stays local. Audio/video and camera frames are not
-              stored.
+              Camera and microphone permissions are required. Audio/video and
+              camera frames are not stored.
             </p>
-            <button className={styles.primaryButton} type="button" onClick={startInterview} disabled={loading}>
-              {loading ? "Starting..." : "Allow Camera & Start Interview"}
+            <button
+              className={styles.primaryButton}
+              type="button"
+              onClick={startInterview}
+              disabled={loading}
+            >
+              {loading ? "Starting..." : "Allow Camera & Microphone"}
             </button>
           </div>
         )}

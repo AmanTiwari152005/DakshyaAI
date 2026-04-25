@@ -189,8 +189,6 @@ function Dashboard() {
         <DashboardHeader
           summary={summary}
           loading={loading}
-          onAddProject={() => openProjectForm()}
-          onAddSkill={openSkillForm}
           onLogout={logout}
         />
 
@@ -349,9 +347,7 @@ function Dashboard() {
           <div className={styles.leftColumn}>
             <QuickActions
               onAddProject={() => openProjectForm()}
-              onAddSkill={openSkillForm}
               onViewBadges={scrollToBadges}
-              onStartInterview={startEvaInterview}
             />
             <SkillProgress
               skills={skills}

@@ -4,8 +4,6 @@ import styles from "../../pages/Dashboard.module.css";
 function DashboardHeader({
   summary,
   loading,
-  onAddProject,
-  onAddSkill,
   onLogout,
 }) {
   const fullName = summary?.full_name || "there";
@@ -63,15 +61,6 @@ function DashboardHeader({
           </article>
         </div>
 
-        <div className={styles.heroActions}>
-          <button type="button" onClick={onAddSkill}>
-            Take Skill Test
-          </button>
-          <button type="button" onClick={onAddProject}>
-            Add Project
-          </button>
-          <Link to="/profile-setup">Complete Profile</Link>
-        </div>
       </section>
     </>
   );

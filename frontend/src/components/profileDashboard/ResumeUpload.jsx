@@ -6,25 +6,26 @@ import {
 } from "../../services/api";
 import styles from "../../pages/ProfileDashboard.module.css";
 
-const sectionLabels = {
-  certifications: "Certifications",
-  education: "Education",
-  experience: "Experience",
-  projects: "Projects",
-};
+const infoFields = [
+  ["name", "Name"],
+  ["email", "Email"],
+  ["phone", "Phone"],
+  ["location", "Location"],
+  ["role", "Role"],
+];
 
-function ResumeListSection({ title, items }) {
+function SectionList({ title, items }) {
   return (
     <article className={styles.resumeSectionCard}>
       <h3>{title}</h3>
-      {items.length === 0 ? (
-        <p className={styles.resumeEmpty}>No items detected.</p>
-      ) : (
+      {items?.length ? (
         <ul>
-          {items.map((item) => (
-            <li key={item}>{item}</li>
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`}>{typeof item === "string" ? item : item.title}</li>
           ))}
         </ul>
+      ) : (
+        <p className={styles.resumeEmpty}>No data detected.</p>
       )}
     </article>
   );
@@ -32,92 +33,65 @@ function ResumeListSection({ title, items }) {
 
 function ResumeUpload({ onSaved }) {
   const [file, setFile] = useState(null);
+  const [result, setResult] = useState(null);
+  const [showRaw, setShowRaw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [resumeUploadId, setResumeUploadId] = useState(null);
-  const [fileUrl, setFileUrl] = useState("");
-  const [extractedText, setExtractedText] = useState("");
-  const [structuredData, setStructuredData] = useState(null);
-  const [showRawText, setShowRawText] = useState(false);
+  const [success, setSuccess] = useState("");
 
-  const handleFileChange = (event) => {
-    const selectedFile = event.target.files?.[0] || null;
+  const structuredData = result?.structured_data || {};
+
+  const submit = async (event) => {
+    event.preventDefault();
     setError("");
-    setMessage("");
-    setExtractedText("");
-    setStructuredData(null);
-    setResumeUploadId(null);
-    setFileUrl("");
-    setShowRawText(false);
+    setSuccess("");
 
-    const isPdf =
-      selectedFile &&
-      (selectedFile.type === "application/pdf" ||
-        selectedFile.name.toLowerCase().endsWith(".pdf"));
-
-    if (selectedFile && !isPdf) {
-      setFile(null);
-      setError("Only PDF resumes are supported.");
+    if (!file) {
+      setError("Please select a PDF resume.");
       return;
     }
 
-    setFile(selectedFile);
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError("");
-    setMessage("");
-
-    if (!file) {
-      setError("Please select a PDF resume file.");
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      setError("Only PDF resumes are supported.");
       return;
     }
 
     setLoading(true);
     try {
       const response = await uploadResume(file);
-      setResumeUploadId(response.data.resume_upload_id);
-      setFileUrl(response.data.file_url || "");
-      setExtractedText(response.data.extracted_text || "");
-      setStructuredData(response.data.structured_data || null);
+      setResult(response.data);
+      setShowRaw(false);
     } catch (err) {
-      setError(getApiError(err, "Unable to extract resume text."));
+      setError(getApiError(err, "Unable to extract resume data."));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveExtractedData = async () => {
-    setError("");
-    setMessage("");
-
-    if (!resumeUploadId || !structuredData) {
+  const saveExtractedData = async () => {
+    if (!result?.resume_upload_id || !result?.structured_data) {
       setError("Analyze a resume before saving extracted data.");
       return;
     }
 
+    setError("");
+    setSuccess("");
     setSaving(true);
+
     try {
-      await confirmResumeSave({
-        resumeUploadId,
-        structuredData,
+      const response = await confirmResumeSave({
+        resumeUploadId: result.resume_upload_id,
+        structuredData: result.structured_data,
       });
-      setMessage("Extracted resume data saved to your profile.");
-      if (onSaved) {
-        await onSaved();
-      }
+      setSuccess(response.data.message || "Extracted data saved.");
+      onSaved?.();
     } catch (err) {
       setError(getApiError(err, "Unable to save extracted resume data."));
     } finally {
       setSaving(false);
     }
   };
-
-  const basicInfo = structuredData?.basic_info || {};
-  const links = structuredData?.links || {};
 
   return (
     <section className={styles.card}>
@@ -128,27 +102,30 @@ function ResumeUpload({ onSaved }) {
         </div>
       </div>
 
-      <form className={styles.resumeForm} onSubmit={handleSubmit}>
+      <form className={styles.resumeForm} onSubmit={submit}>
         <label>
           Upload PDF resume
-          <input type="file" accept="application/pdf,.pdf" onChange={handleFileChange} />
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={(event) => setFile(event.target.files?.[0] || null)}
+          />
         </label>
-
-        {error && <p className={styles.localError}>{error}</p>}
-        {message && <p className={styles.localSuccess}>{message}</p>}
-
         <button className={styles.primaryButton} type="submit" disabled={loading}>
           {loading ? "Extracting resume..." : "Analyze Resume"}
         </button>
       </form>
 
-      {structuredData && (
+      {error && <p className={styles.localError}>{error}</p>}
+      {success && <p className={styles.localSuccess}>{success}</p>}
+
+      {result && (
         <div className={styles.resumeStructuredResult}>
           <div className={styles.resumeResultHeader}>
             <div>
               <strong>Extracted Resume Data</strong>
-              {fileUrl && (
-                <a href={fileUrl} target="_blank" rel="noreferrer">
+              {result.file_url && (
+                <a href={result.file_url} target="_blank" rel="noreferrer">
                   View saved resume
                 </a>
               )}
@@ -156,7 +133,7 @@ function ResumeUpload({ onSaved }) {
             <button
               className={styles.secondaryButton}
               type="button"
-              onClick={handleSaveExtractedData}
+              onClick={saveExtractedData}
               disabled={saving}
             >
               {saving ? "Saving..." : "Save Extracted Data to Profile"}
@@ -167,26 +144,12 @@ function ResumeUpload({ onSaved }) {
             <article className={styles.resumeSectionCard}>
               <h3>Basic Info</h3>
               <dl className={styles.basicInfoList}>
-                <div>
-                  <dt>Name</dt>
-                  <dd>{basicInfo.name || "Not detected"}</dd>
-                </div>
-                <div>
-                  <dt>Email</dt>
-                  <dd>{basicInfo.email || "Not detected"}</dd>
-                </div>
-                <div>
-                  <dt>Phone</dt>
-                  <dd>{basicInfo.phone || "Not detected"}</dd>
-                </div>
-                <div>
-                  <dt>Location</dt>
-                  <dd>{basicInfo.location || "Not detected"}</dd>
-                </div>
-                <div>
-                  <dt>Role</dt>
-                  <dd>{basicInfo.role || "Not detected"}</dd>
-                </div>
+                {infoFields.map(([key, label]) => (
+                  <div key={key}>
+                    <dt>{label}</dt>
+                    <dd>{structuredData.basic_info?.[key] || "Not detected"}</dd>
+                  </div>
+                ))}
               </dl>
             </article>
 
@@ -203,43 +166,40 @@ function ResumeUpload({ onSaved }) {
               )}
             </article>
 
-            {Object.entries(sectionLabels).map(([key, label]) => (
-              <ResumeListSection
-                title={label}
-                items={structuredData[key] || []}
-                key={key}
-              />
-            ))}
+            <SectionList title="Certifications" items={structuredData.certifications} />
+            <SectionList title="Education" items={structuredData.education} />
+            <SectionList title="Experience" items={structuredData.experience} />
+            <SectionList title="Projects" items={structuredData.projects} />
 
             <article className={styles.resumeSectionCard}>
               <h3>Links</h3>
               <dl className={styles.basicInfoList}>
                 <div>
                   <dt>GitHub</dt>
-                  <dd>{links.github || "Not detected"}</dd>
+                  <dd>{structuredData.links?.github || "Not detected"}</dd>
                 </div>
                 <div>
                   <dt>LinkedIn</dt>
-                  <dd>{links.linkedin || "Not detected"}</dd>
+                  <dd>{structuredData.links?.linkedin || "Not detected"}</dd>
                 </div>
               </dl>
             </article>
           </div>
 
-          {extractedText && (
-            <div className={styles.rawTextWrap}>
-              <button
-                className={styles.rawToggle}
-                type="button"
-                onClick={() => setShowRawText((current) => !current)}
-              >
-                {showRawText ? "Hide Raw Extracted Text" : "View Raw Extracted Text"}
-              </button>
-              {showRawText && (
-                <pre className={styles.resumeTextBox}>{extractedText}</pre>
-              )}
-            </div>
-          )}
+          <div className={styles.rawTextWrap}>
+            <button
+              className={styles.rawToggle}
+              type="button"
+              onClick={() => setShowRaw((current) => !current)}
+            >
+              {showRaw ? "Hide Raw Extracted Text" : "View Raw Extracted Text"}
+            </button>
+            {showRaw && (
+              <pre className={styles.resumeTextBox}>
+                {result.extracted_text || "No extracted text returned."}
+              </pre>
+            )}
+          </div>
         </div>
       )}
     </section>

@@ -17,6 +17,8 @@ from .views import (
     ProjectDetailView,
     ProjectListCreateView,
     ProjectSubmitReviewView,
+    QuizGenerateView,
+    QuizSubmitView,
     SkillDetailView,
     SkillListCreateView,
 )
@@ -76,4 +78,6 @@ urlpatterns = [
         ProfileDashboardEndorsementsView.as_view(),
         name="profile-dashboard-endorsements",
     ),
+    path("quiz/generate/", QuizGenerateView.as_view(), name="quiz-generate"),
+    path("quiz/submit/", QuizSubmitView.as_view(), name="quiz-submit"),
 ]

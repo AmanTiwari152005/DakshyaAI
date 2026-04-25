@@ -100,6 +100,21 @@ export const projectsApi = {
   submitReview: (id) => api.post(`/projects/${id}/submit-review/`),
 };
 
+export function generateQuiz(skillName, difficulty = "intermediate") {
+  return api.post("/quiz/generate/", {
+    skill_name: skillName,
+    difficulty,
+  });
+}
+
+export function submitQuiz(skillName, answers, quiz) {
+  return api.post("/quiz/submit/", {
+    skill_name: skillName,
+    answers,
+    quiz,
+  });
+}
+
 export function uploadResume(file) {
   const payload = new FormData();
   payload.append("resume", file);

@@ -9,6 +9,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.utils import timezone
 
 from accounts.serializers import get_or_create_profile
 from .models import (
@@ -22,6 +23,7 @@ from .models import (
     ResumeUpload,
     Skill,
 )
+from .services.openai_quiz import QuizGenerationError, generate_skill_quiz
 from .services.resume_section_parser import parse_resume_sections
 from .services.resume_text import extract_text_from_pdf
 from .serializers import (
@@ -476,5 +478,162 @@ class ResumeConfirmSaveView(APIView):
                 "success": True,
                 "message": "Extracted resume data saved to profile.",
                 "saved_counts": saved_counts,
+            }
+        )
+
+
+class QuizGenerateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        skill_name = str(request.data.get("skill_name", "")).strip()
+        difficulty = str(request.data.get("difficulty", "intermediate")).strip()
+
+        if not skill_name:
+            return Response(
+                {"detail": "Skill name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            quiz = generate_skill_quiz(skill_name, difficulty=difficulty)
+        except QuizGenerationError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({"success": True, "quiz": quiz})
+
+
+class QuizSubmitView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        skill_name = str(request.data.get("skill_name", "")).strip()
+        answers = request.data.get("answers") or {}
+        quiz = request.data.get("quiz") or {}
+        questions = quiz.get("questions", [])
+
+        if not skill_name:
+            return Response(
+                {"detail": "Skill name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not isinstance(answers, dict):
+            return Response(
+                {"detail": "Answers must be an object keyed by question id."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not isinstance(questions, list) or len(questions) != 10:
+            return Response(
+                {"detail": "A complete 10-question quiz is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        score = 0
+        results = []
+
+        for index, question in enumerate(questions, start=1):
+            question_id = str(question.get("id", index))
+            selected_answer = str(answers.get(question_id, "")).strip().upper()
+            correct_answer = str(question.get("correct_answer", "")).strip().upper()
+            is_correct = selected_answer == correct_answer
+
+            if is_correct:
+                score += 1
+
+            results.append(
+                {
+                    "id": int(question.get("id", index)),
+                    "question": question.get("question", ""),
+                    "options": question.get("options", {}),
+                    "selected_answer": selected_answer,
+                    "correct_answer": correct_answer,
+                    "is_correct": is_correct,
+                    "explanation": question.get("explanation", ""),
+                }
+            )
+
+        percentage = score * 10
+        passed = percentage >= 70
+        skill_updated = False
+        badge_unlocked = False
+        badge_payload = None
+
+        if passed:
+            skill = Skill.objects.filter(user=request.user, name__iexact=skill_name).first()
+
+            if skill:
+                skill.progress_score = max(skill.progress_score, percentage)
+                skill.verification_status = Skill.STATUS_VERIFIED
+                skill.source = Skill.SOURCE_TEST
+                skill.save(
+                    update_fields=[
+                        "progress_score",
+                        "verification_status",
+                        "source",
+                        "updated_at",
+                    ]
+                )
+                skill_updated = True
+
+                badge_title = f"{skill.name} Test Verified"
+                requirement_text = f"Score 70% or above in {skill.name} test"
+                badge, created = Badge.objects.get_or_create(
+                    user=request.user,
+                    badge_type="skill_test",
+                    defaults={
+                        "title": badge_title,
+                        "icon_name": "trophy",
+                        "skill": skill,
+                        "is_earned": True,
+                        "requirement_text": requirement_text,
+                        "earned_at": timezone.now(),
+                    },
+                )
+
+                if created:
+                    badge_unlocked = True
+                else:
+                    was_earned = badge.is_earned
+                    badge.title = badge_title
+                    badge.icon_name = "trophy"
+                    badge.skill = skill
+                    badge.is_earned = True
+                    badge.requirement_text = requirement_text
+                    if not badge.earned_at:
+                        badge.earned_at = timezone.now()
+                    badge.save(
+                        update_fields=[
+                            "title",
+                            "icon_name",
+                            "skill",
+                            "is_earned",
+                            "requirement_text",
+                            "earned_at",
+                        ]
+                    )
+                    badge_unlocked = not was_earned
+
+                sync_default_badges(request.user)
+                badge_payload = BadgeSerializer(badge, context={"request": request}).data
+
+        return Response(
+            {
+                "success": True,
+                "skill_name": skill_name,
+                "score": score,
+                "total_questions": 10,
+                "percentage": percentage,
+                "passed": passed,
+                "pass_mark": 70,
+                "retest_allowed": not passed,
+                "skill_updated": skill_updated,
+                "badge_unlocked": badge_unlocked,
+                "badge": badge_payload,
+                "results": results,
             }
         )

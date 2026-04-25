@@ -1,21 +1,19 @@
 import styles from "../../pages/ProfileDashboard.module.css";
 
-const badgeIcons = {
-  skill_verified: "🏆",
-  recruiter_ready: "🥇",
-  test_starter: "🧪",
-  project_pro: "🚀",
-  profile_builder: "🚀",
-  peer_verified: "👥",
+const iconMap = {
+  trophy: "🏆",
+  award: "🥇",
+  target: "🧪",
+  "shield-check": "✅",
+  "user-check": "🚀",
+  briefcase: "💼",
 };
 
-function fallbackIcon(title) {
-  const lowerTitle = title.toLowerCase();
-  if (lowerTitle.includes("skill")) return "🏆";
-  if (lowerTitle.includes("performer") || lowerTitle.includes("ready")) return "🥇";
-  if (lowerTitle.includes("test")) return "🧪";
-  if (lowerTitle.includes("peer")) return "👥";
-  return "🚀";
+function getBadgeIcon(badge) {
+  if (!badge.is_earned) {
+    return "🔒";
+  }
+  return iconMap[badge.icon_name] || "🏆";
 }
 
 function formatDate(value) {
@@ -39,33 +37,32 @@ function BadgesSection({ badges }) {
         </div>
       </div>
 
-      <div className={styles.badgeGrid}>
-        {badges.map((badge) => {
-          const icon = badge.is_earned
-            ? badgeIcons[badge.badge_type] || fallbackIcon(badge.title)
-            : "🔒";
-
-          return (
+      {badges.length === 0 ? (
+        <div className={styles.emptyState}>
+          <strong>No badges yet</strong>
+          <p>Earned and locked achievements will appear here.</p>
+        </div>
+      ) : (
+        <div className={styles.badgeGrid}>
+          {badges.map((badge) => (
             <article
               className={`${styles.badgeCard} ${
                 badge.is_earned ? styles.earnedBadge : styles.lockedBadge
               }`}
               key={badge.id}
             >
-              <span className={styles.badgeIcon}>{icon}</span>
+              <div className={styles.badgeIcon}>{getBadgeIcon(badge)}</div>
               <div>
                 <strong>{badge.title}</strong>
-                <p>{badge.skill_name || badge.requirement_text}</p>
+                <p>{badge.requirement_text}</p>
                 <small>
-                  {badge.is_earned
-                    ? `Earned ${formatDate(badge.earned_at)}`
-                    : badge.requirement_text}
+                  {badge.is_earned ? `Earned ${formatDate(badge.earned_at)}` : "Locked"}
                 </small>
               </div>
             </article>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

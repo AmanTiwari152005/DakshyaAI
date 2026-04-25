@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import styles from "../../pages/Dashboard.module.css";
 
 const statusClassMap = {
@@ -7,6 +8,12 @@ const statusClassMap = {
 };
 
 function SkillProgress({ skills, loading, onAddSkill }) {
+  const navigate = useNavigate();
+
+  const openSkillTest = (skillName) => {
+    navigate(`/skill-test/${encodeURIComponent(skillName)}`);
+  };
+
   return (
     <section className={styles.panel}>
       <div className={styles.sectionHeader}>
@@ -50,7 +57,9 @@ function SkillProgress({ skills, loading, onAddSkill }) {
                   >
                     {skill.verification_status_label}
                   </span>
-                  <button type="button">Quiz Test</button>
+                  <button type="button" onClick={() => openSkillTest(skill.name)}>
+                    Take Test
+                  </button>
                 </div>
               </div>
 

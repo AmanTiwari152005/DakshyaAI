@@ -20,23 +20,20 @@ function LinksCard({ links, onSave, saving }) {
 
   const submit = (event) => {
     event.preventDefault();
-    onSave({
-      github_url: form.github_url,
-      linkedin_url: form.linkedin_url,
-    });
+    onSave(form);
   };
 
   return (
     <section className={styles.card}>
       <div className={styles.sectionHeader}>
         <div>
-          <p className={styles.eyebrow}>Links</p>
-          <h2>Portfolio links</h2>
+          <p className={styles.eyebrow}>Portfolio Links</p>
+          <h2>Proof channels</h2>
         </div>
       </div>
 
       <form className={styles.formGrid} onSubmit={submit}>
-        <label>
+        <label className={styles.fullWidth}>
           GitHub
           <input
             type="url"
@@ -44,9 +41,9 @@ function LinksCard({ links, onSave, saving }) {
             onChange={(event) => updateField("github_url", event.target.value)}
             placeholder="https://github.com/username"
           />
-          <small>Optional. GitHub analysis is coming soon.</small>
+          <small>Optional for MVP. GitHub analysis is coming soon.</small>
         </label>
-        <label>
+        <label className={styles.fullWidth}>
           LinkedIn
           <input
             type="url"

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "../../pages/ProfileDashboard.module.css";
 
 const emptyForm = {
@@ -16,6 +17,7 @@ const statusClassMap = {
 };
 
 function SkillsManager({ skills, onCreate, onUpdate, onDelete, saving }) {
+  const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -55,6 +57,10 @@ function SkillsManager({ skills, onCreate, onUpdate, onDelete, saving }) {
       await onCreate(payload);
     }
     setIsFormOpen(false);
+  };
+
+  const openSkillTest = (skillName) => {
+    navigate(`/skill-test/${encodeURIComponent(skillName)}`);
   };
 
   return (
@@ -141,7 +147,9 @@ function SkillsManager({ skills, onCreate, onUpdate, onDelete, saving }) {
                 {skill.verification_status_label}
               </span>
               <div className={styles.cardActions}>
-                <button type="button">Quiz Test</button>
+                <button type="button" onClick={() => openSkillTest(skill.name)}>
+                  Take Test
+                </button>
                 <button type="button" onClick={() => openEdit(skill)}>
                   Edit
                 </button>

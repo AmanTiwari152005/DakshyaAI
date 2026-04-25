@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import ProfileDashboard from "./pages/ProfileDashboard";
 import ProfileSetup from "./pages/ProfileSetup";
 import Register from "./pages/Register";
+import SkillTest from "./pages/SkillTest";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/profile-setup" element={<ProfileSetup />} />
         <Route path="/profile-dashboard" element={<ProfileDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/skill-test/:skillName" element={<SkillTest />} />
       </Route>
     </Routes>
   );

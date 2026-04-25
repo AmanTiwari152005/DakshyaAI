@@ -622,6 +622,438 @@
   min-height: 116px;
 }
 
+.evaFloatingButton {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  min-width: 86px;
+  min-height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
+  color: #ffffff;
+  font-weight: 950;
+  box-shadow: 0 20px 48px rgba(30, 58, 138, 0.3);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.evaFloatingButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 58px rgba(124, 58, 237, 0.35);
+}
+
+.evaFloatingButton span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 0.78rem;
+}
+
+.evaPopup {
+  position: fixed;
+  right: 24px;
+  bottom: 94px;
+  z-index: 31;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 126px));
+  display: grid;
+  grid-template-rows: auto auto minmax(180px, 1fr) auto auto;
+  overflow: hidden;
+  border: 1px solid rgba(209, 213, 219, 0.8);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 30px 80px rgba(17, 24, 39, 0.22);
+}
+
+.evaPopupHeader,
+.evaInterviewHeader {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
+  color: #ffffff;
+}
+
+.evaPopupHeader h2,
+.evaInterviewHeader h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.evaPopupHeader p {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.evaPopupHeader button,
+.evaInterviewHeader button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-weight: 950;
+}
+
+.evaAvatar {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.evaInterviewCta {
+  min-height: 46px;
+  margin: 14px 16px 0;
+  border: 0;
+  border-radius: 14px;
+  background: #7c3aed;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.evaMessages {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 16px;
+  background: #f3f4f6;
+}
+
+.evaMessage {
+  max-width: 88%;
+  display: grid;
+  gap: 4px;
+  padding: 12px 13px;
+  border-radius: 16px;
+}
+
+.evaMessage span {
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.evaMessage p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.evaAssistantMessage {
+  justify-self: start;
+  border-bottom-left-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.evaAssistantMessage span {
+  color: #7c3aed;
+}
+
+.evaUserMessage {
+  justify-self: end;
+  border-bottom-right-radius: 6px;
+  background: #1e3a8a;
+  color: #ffffff;
+}
+
+.evaUserMessage span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.evaInputBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.evaInputBar input {
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  color: #111827;
+  font: inherit;
+  outline: none;
+}
+
+.evaInputBar input:focus,
+.voiceRecorder textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
+}
+
+.evaInputBar button,
+.interviewActions button,
+.questionCard button,
+.voiceControls button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: #7c3aed;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.evaInputBar button:disabled,
+.interviewActions button:disabled,
+.voiceControls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.evaError,
+.evaNotice {
+  margin: 14px 16px 0;
+  padding: 11px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.evaError {
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  background: rgba(254, 226, 226, 0.9);
+  color: #991b1b;
+}
+
+.evaNotice {
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e3a8a;
+}
+
+.evaModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.58);
+}
+
+.evaInterviewModal {
+  width: min(980px, 100%);
+  max-height: min(760px, calc(100vh - 40px));
+  overflow-y: auto;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 36px 90px rgba(17, 24, 39, 0.3);
+}
+
+.evaInterviewHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.evaInterviewHeader .eyebrowDark {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.interviewIntro {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+}
+
+.interviewIntro p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.65;
+}
+
+.interviewGrid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.36fr) minmax(0, 1fr);
+  gap: 18px;
+  padding: 20px;
+}
+
+.evaCameraPreview,
+.interviewPanel,
+.questionCard,
+.feedbackCard,
+.reportCard {
+  border: 1px solid rgba(209, 213, 219, 0.76);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.08);
+}
+
+.evaCameraPreview {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+  background: #f9fafb;
+}
+
+.evaCameraHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #1e3a8a;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.evaCameraPreview video {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  background: #111827;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.evaCameraPreview small {
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.interviewPanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.questionCard,
+.feedbackCard {
+  padding: 16px;
+  box-shadow: none;
+}
+
+.questionCard span {
+  color: #7c3aed;
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.questionCard h3 {
+  margin: 10px 0 14px;
+  color: #111827;
+  line-height: 1.45;
+}
+
+.feedbackCard {
+  border-color: rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.feedbackCard strong {
+  color: #15803d;
+}
+
+.feedbackCard p {
+  margin: 6px 0 0;
+  color: #111827;
+}
+
+.voiceRecorder {
+  display: grid;
+  gap: 12px;
+}
+
+.voiceRecorder label {
+  display: grid;
+  gap: 8px;
+  color: #111827;
+  font-weight: 850;
+}
+
+.voiceRecorder textarea {
+  width: 100%;
+  min-height: 132px;
+  padding: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  color: #111827;
+  font: inherit;
+  outline: none;
+  resize: vertical;
+}
+
+.voiceControls,
+.interviewActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.voiceControls span {
+  color: #15803d;
+  font-weight: 850;
+}
+
+.interviewActions {
+  padding-top: 4px;
+}
+
+.interviewActions button {
+  padding: 0 16px;
+}
+
+.endInterviewButton {
+  border: 1px solid rgba(220, 38, 38, 0.32) !important;
+  background: #ffffff !important;
+  color: #991b1b !important;
+}
+
+.reportGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 20px;
+}
+
+.reportCard {
+  padding: 16px;
+  background: #f9fafb;
+  box-shadow: none;
+}
+
+.reportCard h3 {
+  margin: 0 0 10px;
+  color: #111827;
+}
+
+.reportCard p,
+.reportCard li {
+  color: #4b5563;
+  line-height: 1.55;
+}
+
+.reportCard ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
 @keyframes shimmer {
   from {
     background-position: 200% 0;
@@ -674,7 +1106,10 @@
   .heroActions button,
   .projectActions button,
   .sectionHeader button,
-  .quickActionsGrid button {
+  .quickActionsGrid button,
+  .evaInputBar button,
+  .interviewActions button,
+  .voiceControls button {
     width: 100%;
   }
 
@@ -686,6 +1121,22 @@
 
   .skillActions {
     justify-content: flex-start;
+  }
+
+  .evaPopup {
+    right: 16px;
+    bottom: 88px;
+  }
+
+  .evaPopupHeader,
+  .evaInterviewHeader,
+  .interviewGrid,
+  .reportGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .evaInputBar {
+    grid-template-columns: 1fr;
   }
 }
 

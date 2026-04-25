@@ -27,6 +27,12 @@ from .models import (
     TestLock,
 )
 from .services.openai_quiz import QuizGenerationError, generate_skill_quiz
+from .services.eva_ai import (
+    answer_interview,
+    ask_eva,
+    end_interview,
+    start_interview,
+)
 from .services.resume_section_parser import parse_resume_sections
 from .services.resume_text import extract_text_from_pdf
 from .serializers import (
@@ -815,3 +821,97 @@ class QuizSubmitView(APIView):
                 "results": results,
             }
         )
+
+
+class EvaChatView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        message = str(request.data.get("message", "")).strip()
+        if not message:
+            return Response(
+                {"detail": "Message is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            reply = ask_eva(request.user, message)
+        except Exception:
+            return Response(
+                {"detail": "Eva is unavailable right now."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({"success": True, "reply": reply})
+
+
+class EvaInterviewStartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        mode = str(request.data.get("mode", "voice")).strip() or "voice"
+        try:
+            interview = start_interview(request.user)
+        except Exception:
+            return Response(
+                {"detail": "Eva interview is unavailable right now."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({"success": True, "mode": mode, **interview})
+
+
+class EvaInterviewAnswerView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        session_id = str(request.data.get("interview_session_id", "")).strip()
+        question = str(request.data.get("question", "")).strip()
+        answer = str(request.data.get("answer", "")).strip()
+        question_number = request.data.get("question_number", 1)
+        history = request.data.get("history") or []
+
+        if not session_id or not question or not answer:
+            return Response(
+                {"detail": "Session id, question, and answer are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = answer_interview(
+                request.user,
+                question_number=question_number,
+                question=question,
+                answer=answer,
+                history=history,
+            )
+        except Exception:
+            return Response(
+                {"detail": "Eva could not review this answer right now."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({"success": True, **result})
+
+
+class EvaInterviewEndView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        session_id = str(request.data.get("interview_session_id", "")).strip()
+        history = request.data.get("history") or []
+        if not session_id:
+            return Response(
+                {"detail": "Interview session id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            report = end_interview(request.user, history=history)
+        except Exception:
+            return Response(
+                {"detail": "Eva could not generate the final report right now."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({"success": True, "final_report": report})

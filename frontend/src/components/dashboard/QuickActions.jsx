@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import styles from "../../pages/Dashboard.module.css";
 
-function QuickActions({ onAddProject, onAddSkill, onViewBadges }) {
+function QuickActions({ onAddProject, onAddSkill, onViewBadges, onStartInterview }) {
   const navigate = useNavigate();
 
   return (
@@ -29,6 +29,9 @@ function QuickActions({ onAddProject, onAddSkill, onViewBadges }) {
         </button>
         <button type="button" onClick={onViewBadges}>
           View Badges
+        </button>
+        <button type="button" onClick={onStartInterview}>
+          Start Eva Interview
         </button>
       </div>
     </section>

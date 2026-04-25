@@ -6,6 +6,9 @@ import ProjectsList from "../components/dashboard/ProjectsList";
 import QuickActions from "../components/dashboard/QuickActions";
 import SkillProgress from "../components/dashboard/SkillProgress";
 import StatsCards from "../components/dashboard/StatsCards";
+import EvaChatPopup from "../components/eva/EvaChatPopup";
+import EvaFloatingButton from "../components/eva/EvaFloatingButton";
+import EvaInterviewModal from "../components/eva/EvaInterviewModal";
 import {
   clearAuthToken,
   dashboardApi,
@@ -45,6 +48,8 @@ function Dashboard() {
   const [editingProject, setEditingProject] = useState(null);
   const [saving, setSaving] = useState(false);
   const [submittingId, setSubmittingId] = useState(null);
+  const [isEvaOpen, setIsEvaOpen] = useState(false);
+  const [isInterviewOpen, setIsInterviewOpen] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     setError("");
@@ -171,6 +176,11 @@ function Dashboard() {
 
   const scrollToBadges = () => {
     document.getElementById("badges")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const startEvaInterview = () => {
+    setIsEvaOpen(false);
+    setIsInterviewOpen(true);
   };
 
   return (
@@ -341,6 +351,7 @@ function Dashboard() {
               onAddProject={() => openProjectForm()}
               onAddSkill={openSkillForm}
               onViewBadges={scrollToBadges}
+              onStartInterview={startEvaInterview}
             />
             <SkillProgress
               skills={skills}
@@ -361,6 +372,21 @@ function Dashboard() {
             <BadgesPanel badges={badges} loading={loading} />
           </div>
         </div>
+
+        <EvaFloatingButton
+          isOpen={isEvaOpen}
+          onClick={() => setIsEvaOpen((current) => !current)}
+        />
+        {isEvaOpen && (
+          <EvaChatPopup
+            onClose={() => setIsEvaOpen(false)}
+            onStartInterview={startEvaInterview}
+          />
+        )}
+        <EvaInterviewModal
+          isOpen={isInterviewOpen}
+          onClose={() => setIsInterviewOpen(false)}
+        />
       </div>
     </main>
   );

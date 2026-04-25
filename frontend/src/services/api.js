@@ -134,6 +134,22 @@ export function resetQuizWarnings(skillName) {
   });
 }
 
+export function sendEvaMessage(message) {
+  return api.post("/eva/chat/", { message });
+}
+
+export function startEvaInterview(mode = "voice") {
+  return api.post("/eva/interview/start/", { mode });
+}
+
+export function submitEvaInterviewAnswer(payload) {
+  return api.post("/eva/interview/answer/", payload);
+}
+
+export function endEvaInterview(payload) {
+  return api.post("/eva/interview/end/", payload);
+}
+
 export function uploadResume(file) {
   const payload = new FormData();
   payload.append("resume", file);

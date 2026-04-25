@@ -241,6 +241,29 @@ class ResumeUpload(models.Model):
         return f"Resume upload for {self.user}"
 
 
+class TestLock(models.Model):
+    REASON_ANTI_CHEATING = "anti_cheating"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="test_locks",
+    )
+    skill_name = models.CharField(max_length=120)
+    locked_until = models.DateTimeField(blank=True, null=True)
+    reason = models.CharField(max_length=80, default=REASON_ANTI_CHEATING)
+    warning_count = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        unique_together = ("user", "skill_name")
+
+    def __str__(self):
+        return f"{self.skill_name} lock for {self.user}"
+
+
 class Certification(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

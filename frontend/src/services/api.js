@@ -115,6 +115,25 @@ export function submitQuiz(skillName, answers, quiz) {
   });
 }
 
+export function checkQuizLock(skillName) {
+  return api.post("/quiz/check-lock/", {
+    skill_name: skillName,
+  });
+}
+
+export function sendAntiCheatWarning(skillName, reason) {
+  return api.post("/quiz/anti-cheat-warning/", {
+    skill_name: skillName,
+    reason,
+  });
+}
+
+export function resetQuizWarnings(skillName) {
+  return api.post("/quiz/reset-warnings/", {
+    skill_name: skillName,
+  });
+}
+
 export function uploadResume(file) {
   const payload = new FormData();
   payload.append("resume", file);

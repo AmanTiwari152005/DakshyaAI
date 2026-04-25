@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from rest_framework import status
 from rest_framework.generics import (
     ListAPIView,
@@ -22,6 +24,7 @@ from .models import (
     ProjectScreenshot,
     ResumeUpload,
     Skill,
+    TestLock,
 )
 from .services.openai_quiz import QuizGenerationError, generate_skill_quiz
 from .services.resume_section_parser import parse_resume_sections
@@ -41,6 +44,69 @@ from .serializers import (
     serialize_profile_dashboard,
     sync_default_badges,
 )
+
+
+ANTI_CHEAT_MAX_WARNINGS = 3
+ANTI_CHEAT_LOCK_DURATION = timedelta(hours=48)
+ANTI_CHEAT_LOCK_MESSAGE = (
+    "This test is locked for 48 hours due to anti-cheating warnings."
+)
+
+
+def get_skill_name_from_request(request):
+    return str(request.data.get("skill_name", "")).strip()
+
+
+def get_existing_test_lock(user, skill_name):
+    test_lock = TestLock.objects.filter(user=user, skill_name__iexact=skill_name).first()
+    if (
+        test_lock
+        and test_lock.locked_until
+        and test_lock.locked_until <= timezone.now()
+    ):
+        test_lock.locked_until = None
+        test_lock.warning_count = 0
+        test_lock.reason = TestLock.REASON_ANTI_CHEATING
+        test_lock.save(
+            update_fields=["locked_until", "warning_count", "reason", "updated_at"]
+        )
+    return test_lock
+
+
+def get_or_create_test_lock(user, skill_name, reason=TestLock.REASON_ANTI_CHEATING):
+    existing_lock = get_existing_test_lock(user, skill_name)
+    if existing_lock:
+        return existing_lock, False
+    return TestLock.objects.create(
+        user=user,
+        skill_name=skill_name,
+        reason=reason or TestLock.REASON_ANTI_CHEATING,
+    ), True
+
+
+def get_remaining_lock_seconds(test_lock):
+    if not test_lock or not test_lock.locked_until:
+        return 0
+    remaining = (test_lock.locked_until - timezone.now()).total_seconds()
+    return max(0, int(remaining))
+
+
+def is_test_lock_active(test_lock):
+    return bool(
+        test_lock
+        and test_lock.locked_until
+        and test_lock.locked_until > timezone.now()
+    )
+
+
+def build_locked_response(test_lock):
+    return {
+        "locked": True,
+        "locked_until": test_lock.locked_until,
+        "remaining_seconds": get_remaining_lock_seconds(test_lock),
+        "warning_count": test_lock.warning_count,
+        "message": ANTI_CHEAT_LOCK_MESSAGE,
+    }
 
 
 class DashboardSummaryView(APIView):
@@ -486,7 +552,7 @@ class QuizGenerateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        skill_name = str(request.data.get("skill_name", "")).strip()
+        skill_name = get_skill_name_from_request(request)
         difficulty = str(request.data.get("difficulty", "intermediate")).strip()
 
         if not skill_name:
@@ -494,6 +560,10 @@ class QuizGenerateView(APIView):
                 {"detail": "Skill name is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        test_lock = get_existing_test_lock(request.user, skill_name)
+        if is_test_lock_active(test_lock):
+            return Response(build_locked_response(test_lock), status=status.HTTP_423_LOCKED)
 
         try:
             quiz = generate_skill_quiz(skill_name, difficulty=difficulty)
@@ -506,11 +576,119 @@ class QuizGenerateView(APIView):
         return Response({"success": True, "quiz": quiz})
 
 
+class QuizCheckLockView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        skill_name = get_skill_name_from_request(request)
+
+        if not skill_name:
+            return Response(
+                {"detail": "Skill name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        test_lock = get_existing_test_lock(request.user, skill_name)
+        if is_test_lock_active(test_lock):
+            return Response(build_locked_response(test_lock))
+
+        return Response(
+            {
+                "locked": False,
+                "warning_count": test_lock.warning_count if test_lock else 0,
+                "remaining_warnings": max(
+                    0,
+                    ANTI_CHEAT_MAX_WARNINGS
+                    - (test_lock.warning_count if test_lock else 0),
+                ),
+            }
+        )
+
+
+class QuizAntiCheatWarningView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        skill_name = get_skill_name_from_request(request)
+        reason = str(request.data.get("reason", TestLock.REASON_ANTI_CHEATING)).strip()
+
+        if not skill_name:
+            return Response(
+                {"detail": "Skill name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        test_lock, _ = get_or_create_test_lock(request.user, skill_name, reason=reason)
+        if is_test_lock_active(test_lock):
+            return Response(build_locked_response(test_lock))
+
+        test_lock.warning_count += 1
+        test_lock.reason = reason or TestLock.REASON_ANTI_CHEATING
+
+        if test_lock.warning_count > ANTI_CHEAT_MAX_WARNINGS:
+            test_lock.locked_until = timezone.now() + ANTI_CHEAT_LOCK_DURATION
+            test_lock.save(
+                update_fields=["warning_count", "reason", "locked_until", "updated_at"]
+            )
+            return Response(
+                {
+                    "locked": True,
+                    "warning_count": test_lock.warning_count,
+                    "locked_until": test_lock.locked_until,
+                    "remaining_seconds": get_remaining_lock_seconds(test_lock),
+                    "message": (
+                        "Test locked for 48 hours due to repeated anti-cheating warnings."
+                    ),
+                }
+            )
+
+        test_lock.save(update_fields=["warning_count", "reason", "updated_at"])
+        return Response(
+            {
+                "locked": False,
+                "warning_count": test_lock.warning_count,
+                "remaining_warnings": max(
+                    0,
+                    ANTI_CHEAT_MAX_WARNINGS - test_lock.warning_count,
+                ),
+                "message": (
+                    f"Warning {test_lock.warning_count}/3: "
+                    "Please keep your face visible."
+                ),
+            }
+        )
+
+
+class QuizResetWarningsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        skill_name = get_skill_name_from_request(request)
+
+        if not skill_name:
+            return Response(
+                {"detail": "Skill name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        test_lock = get_existing_test_lock(request.user, skill_name)
+        if not test_lock:
+            return Response({"success": True, "warning_count": 0})
+
+        if is_test_lock_active(test_lock):
+            return Response(build_locked_response(test_lock))
+
+        test_lock.warning_count = 0
+        test_lock.reason = TestLock.REASON_ANTI_CHEATING
+        test_lock.save(update_fields=["warning_count", "reason", "updated_at"])
+        return Response({"success": True, "warning_count": 0})
+
+
 class QuizSubmitView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        skill_name = str(request.data.get("skill_name", "")).strip()
+        skill_name = get_skill_name_from_request(request)
         answers = request.data.get("answers") or {}
         quiz = request.data.get("quiz") or {}
         questions = quiz.get("questions", [])

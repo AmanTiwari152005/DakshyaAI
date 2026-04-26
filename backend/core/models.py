@@ -324,12 +324,14 @@ class RecruiterProfile(models.Model):
         on_delete=models.CASCADE,
         related_name="recruiter_profile",
     )
-    company_name = models.CharField(max_length=180)
-    recruiter_name = models.CharField(max_length=150)
+    company_name = models.CharField(max_length=180, blank=True)
+    recruiter_name = models.CharField(max_length=150, blank=True)
     designation = models.CharField(max_length=140, blank=True)
     company_website = models.URLField(blank=True)
     location = models.CharField(max_length=140, blank=True)
+    is_profile_complete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["company_name"]

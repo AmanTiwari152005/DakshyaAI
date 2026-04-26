@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import OTP, UserProfile
+from .models import EmailOTP, OTP, UserProfile
 
 
 @admin.register(UserProfile)
@@ -15,3 +15,10 @@ class OTPAdmin(admin.ModelAdmin):
     list_display = ("email", "purpose", "otp", "is_verified", "expires_at")
     search_fields = ("email", "otp")
     list_filter = ("purpose", "is_verified")
+
+
+@admin.register(EmailOTP)
+class EmailOTPAdmin(admin.ModelAdmin):
+    list_display = ("email", "purpose", "account_type", "is_verified", "expires_at")
+    search_fields = ("email", "otp")
+    list_filter = ("purpose", "account_type", "is_verified")

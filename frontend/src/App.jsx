@@ -10,7 +10,9 @@ import RecruiterApplicationDetail from "./pages/RecruiterApplicationDetail";
 import RecruiterApplications from "./pages/RecruiterApplications";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import RecruiterJobs from "./pages/RecruiterJobs";
+import RecruiterProfileSetup from "./pages/RecruiterProfileSetup";
 import SkillTest from "./pages/SkillTest";
+import VerifyOtp from "./pages/VerifyOtp";
 
 function App() {
   return (
@@ -18,13 +20,18 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-otp" element={<VerifyOtp />} />
       <Route path="/signup" element={<Navigate to="/register" replace />} />
 
-      <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute allowedAccountTypes={["candidate"]} />}>
         <Route path="/profile-setup" element={<ProfileSetup />} />
         <Route path="/profile-dashboard" element={<ProfileDashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/skill-test/:skillName" element={<SkillTest />} />
+      </Route>
+
+      <Route element={<ProtectedRoute allowedAccountTypes={["recruiter"]} />}>
+        <Route path="/recruiter-profile-setup" element={<RecruiterProfileSetup />} />
         <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
         <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
         <Route path="/recruiter/applications" element={<RecruiterApplications />} />

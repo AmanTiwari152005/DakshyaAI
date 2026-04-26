@@ -278,9 +278,33 @@ class RecruiterProfileSerializer(serializers.ModelSerializer):
             "designation",
             "company_website",
             "location",
+            "is_profile_complete",
             "created_at",
+            "updated_at",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "is_profile_complete", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        instance = self.instance
+        required_fields = [
+            "company_name",
+            "recruiter_name",
+            "designation",
+            "company_website",
+            "location",
+        ]
+        missing = []
+        for field in required_fields:
+            next_value = attrs.get(field)
+            if next_value is None and instance:
+                next_value = getattr(instance, field, "")
+            if not next_value:
+                missing.append(field)
+        if missing:
+            raise serializers.ValidationError(
+                {field: "This field is required." for field in missing}
+            )
+        return attrs
 
 
 class JobPostSerializer(serializers.ModelSerializer):

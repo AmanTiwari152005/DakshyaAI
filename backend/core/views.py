@@ -317,7 +317,7 @@ class RecruiterProfileView(APIView):
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save(user=request.user)
+        serializer.save(user=request.user, is_profile_complete=True)
 
         return Response(
             {
@@ -350,7 +350,8 @@ class RecruiterJobListCreateView(ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         if not is_recruiter(request.user):
             return recruiter_required_response()
-        if not get_recruiter_profile(request.user):
+        recruiter = get_recruiter_profile(request.user)
+        if not recruiter or not recruiter.is_profile_complete:
             return Response(
                 {"detail": "Complete recruiter profile before posting jobs."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -507,7 +508,7 @@ class RecruiterProjectValidationView(APIView):
             return recruiter_required_response()
 
         recruiter = get_recruiter_profile(request.user)
-        if not recruiter:
+        if not recruiter or not recruiter.is_profile_complete:
             return Response(
                 {"detail": "Complete recruiter profile before validating projects."},
                 status=status.HTTP_400_BAD_REQUEST,

@@ -92,3 +92,40 @@ class OTP(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.purpose}"
+
+
+class EmailOTP(models.Model):
+    PURPOSE_SIGNUP = "signup"
+    PURPOSE_RESEND = "resend"
+
+    PURPOSE_CHOICES = [
+        (PURPOSE_SIGNUP, "Signup"),
+        (PURPOSE_RESEND, "Resend"),
+    ]
+
+    email = models.EmailField(db_index=True)
+    otp = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES)
+    account_type = models.CharField(
+        max_length=20,
+        choices=UserProfile.ACCOUNT_TYPE_CHOICES,
+        default=UserProfile.ACCOUNT_CANDIDATE,
+    )
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"{self.email} - {self.purpose}"

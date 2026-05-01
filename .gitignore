@@ -3,9 +3,13 @@ frontend/dist/
 
 backend/db.sqlite3
 backend/media/
+backend/staticfiles/
 backend/**/__pycache__/
 backend/**/*.pyc
 
 .env
+.env.local
+__pycache__/
+*.pyc
 .venv/
 venv/

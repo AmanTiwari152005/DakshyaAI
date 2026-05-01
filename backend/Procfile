@@ -1,0 +1,1 @@
+web: gunicorn dakshya_backend.wsgi:application

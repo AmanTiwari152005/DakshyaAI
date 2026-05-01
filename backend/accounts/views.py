@@ -1,7 +1,7 @@
 from datetime import timedelta
+import logging
 import random
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
@@ -25,6 +25,9 @@ from .serializers import (
     VerifyOTPSerializer,
     get_or_create_profile,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def generate_otp():
@@ -130,9 +133,13 @@ class SignupView(APIView):
         try:
             send_signup_otp(email, otp_record.otp)
         except Exception:
+            logger.exception("Unable to send signup OTP email to %s", email)
             return Response(
-                {"detail": "Unable to send verification email. Please try again."},
-                status=status.HTTP_502_BAD_GATEWAY,
+                {
+                    "success": False,
+                    "message": "Unable to send OTP email. Please try again later.",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         payload = {
@@ -228,9 +235,13 @@ class ResendOTPView(APIView):
         try:
             send_signup_otp(email, otp_record.otp)
         except Exception:
+            logger.exception("Unable to resend signup OTP email to %s", email)
             return Response(
-                {"detail": "Unable to send verification email. Please try again."},
-                status=status.HTTP_502_BAD_GATEWAY,
+                {
+                    "success": False,
+                    "message": "Unable to send OTP email. Please try again later.",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         payload = {

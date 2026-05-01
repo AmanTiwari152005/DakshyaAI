@@ -3,9 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { authApi, getApiError } from "../services/api";
 import styles from "./Auth.module.css";
 
-const PENDING_EMAIL_KEY = "dakshyaai_pending_signup_email";
-const PENDING_ACCOUNT_TYPE_KEY = "dakshyaai_pending_signup_account_type";
-
 function Register() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -27,15 +24,8 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await authApi.signup(form);
-      localStorage.setItem(PENDING_EMAIL_KEY, response.data.email);
-      localStorage.setItem(PENDING_ACCOUNT_TYPE_KEY, response.data.account_type);
-      navigate("/verify-otp", {
-        state: {
-          email: response.data.email,
-          accountType: response.data.account_type,
-        },
-      });
+      await authApi.signup(form);
+      navigate("/login", { replace: true });
     } catch (err) {
       setError(getApiError(err, "Unable to create account."));
     } finally {
@@ -50,9 +40,9 @@ function Register() {
           DakshyaAI
         </Link>
         <p className={styles.eyebrow}>Create account</p>
-        <h1>Signup with email verification</h1>
+        <h1>Create your DakshyaAI account</h1>
         <p className={styles.subtitle}>
-          Choose your account type, set a password, then verify your email with OTP.
+          Choose your account type and set a password to start using DakshyaAI.
         </p>
 
         <form className={styles.form} onSubmit={submitSignup}>
@@ -126,12 +116,12 @@ function Register() {
           {error && <p className={styles.error}>{error}</p>}
 
           <button className={styles.submitButton} type="submit" disabled={loading}>
-            {loading ? "Sending OTP..." : "Send OTP"}
+            {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
         <p className={styles.switchText}>
-          Already verified? <Link to="/login">Login</Link>
+          Already have an account? <Link to="/login">Login</Link>
         </p>
       </section>
     </main>

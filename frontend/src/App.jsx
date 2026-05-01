@@ -12,7 +12,6 @@ import RecruiterDashboard from "./pages/RecruiterDashboard";
 import RecruiterJobs from "./pages/RecruiterJobs";
 import RecruiterProfileSetup from "./pages/RecruiterProfileSetup";
 import SkillTest from "./pages/SkillTest";
-import VerifyOtp from "./pages/VerifyOtp";
 
 function App() {
   return (
@@ -20,7 +19,6 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} />
       <Route path="/signup" element={<Navigate to="/register" replace />} />
 
       <Route element={<ProtectedRoute allowedAccountTypes={["candidate"]} />}>

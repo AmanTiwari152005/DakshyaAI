@@ -94,25 +94,10 @@ export const authApi = {
       password,
       confirm_password: confirmPassword,
       account_type: accountType,
-    }),
-  verifySignupOtp: ({ email, otp }) =>
-    api.post("/auth/verify-signup-otp/", { email, otp }),
-  resendOtp: ({ email }) => api.post("/auth/resend-otp/", { email }),
+      role: accountType,
+  }),
   login: ({ email, password }) => api.post("/auth/login/", { email, password }),
   logout: () => api.post("/auth/logout/"),
-  requestOtp: ({ email, purpose, accountType }) =>
-    api.post("/auth/request-otp/", {
-      email,
-      purpose,
-      account_type: accountType,
-    }),
-  verifyOtp: ({ email, otp, purpose, accountType }) =>
-    api.post("/auth/verify-otp/", {
-      email,
-      otp,
-      purpose,
-      account_type: accountType,
-    }),
 };
 
 export const profileApi = {

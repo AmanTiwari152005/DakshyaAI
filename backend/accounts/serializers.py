@@ -26,14 +26,33 @@ class VerifyOTPSerializer(serializers.Serializer):
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
-    confirm_password = serializers.CharField(write_only=True, min_length=8)
-    account_type = serializers.ChoiceField(choices=UserProfile.ACCOUNT_TYPE_CHOICES)
+    confirm_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        required=False,
+        allow_blank=True,
+    )
+    account_type = serializers.ChoiceField(
+        choices=UserProfile.ACCOUNT_TYPE_CHOICES,
+        required=False,
+    )
+    role = serializers.ChoiceField(
+        choices=UserProfile.ACCOUNT_TYPE_CHOICES,
+        required=False,
+    )
 
     def validate_email(self, value):
         return value.lower()
 
     def validate(self, attrs):
-        if attrs["password"] != attrs["confirm_password"]:
+        attrs["account_type"] = attrs.get("role") or attrs.get("account_type")
+        if not attrs["account_type"]:
+            raise serializers.ValidationError(
+                {"role": "This field is required."}
+            )
+
+        confirm_password = attrs.get("confirm_password")
+        if confirm_password and attrs["password"] != confirm_password:
             raise serializers.ValidationError(
                 {"confirm_password": "Passwords do not match."}
             )

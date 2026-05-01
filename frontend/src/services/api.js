@@ -1,7 +1,12 @@
 import axios from "axios";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+const RAW_API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://127.0.0.1:8000/api";
+const API_BASE_URL = RAW_API_BASE_URL.endsWith("/api")
+  ? RAW_API_BASE_URL
+  : `${RAW_API_BASE_URL.replace(/\/$/, "")}/api`;
 
 export const AUTH_TOKEN_KEY = "dakshyaai_auth_token";
 export const ACCOUNT_TYPE_KEY = "dakshyaai_account_type";
